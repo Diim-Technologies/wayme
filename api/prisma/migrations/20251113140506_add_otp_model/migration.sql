@@ -1,0 +1,15 @@
+-- CreateTable
+CREATE TABLE `otps` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `code` VARCHAR(191) NOT NULL,
+    `type` ENUM('PASSWORD_RESET', 'EMAIL_VERIFICATION', 'TWO_FACTOR_AUTH') NOT NULL,
+    `expiresAt` DATETIME(3) NOT NULL,
+    `isUsed` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `otps` ADD CONSTRAINT `otps_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
