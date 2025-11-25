@@ -1,0 +1,10 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/diimtews/api/wayme
+    - /bin/git pull
+    - npm install --production=false
+    - npx prisma generate
+    - npx prisma migrate deploy
+    - npm run build
+    - ~/bin/restart-app myapp
