@@ -15,7 +15,7 @@ let AppService = class AppService {
     getHealth() {
         return {
             status: 'OK',
-            message: 'Wayame API is running successfully',
+            message: 'Wayame transfer API is running successfully',
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             version: '1.0.0',
