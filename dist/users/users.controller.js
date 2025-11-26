@@ -18,9 +18,11 @@ const swagger_1 = require("@nestjs/swagger");
 const users_service_1 = require("./users.service");
 const users_dto_1 = require("./dto/users.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const email_service_1 = require("../common/services/email.service");
 let UsersController = class UsersController {
-    constructor(usersService) {
+    constructor(usersService, emailService) {
         this.usersService = usersService;
+        this.emailService = emailService;
     }
     async getCurrentUser(req) {
         return this.usersService.findById(req.user.id);
@@ -33,6 +35,47 @@ let UsersController = class UsersController {
     }
     async getTransferHistory(req, page, limit, status, type) {
         return this.usersService.getTransferHistory(req.user.id, page ? Number(page) : 1, limit ? Number(limit) : 10);
+    }
+    async testEmail(req, body) {
+        if (process.env.NODE_ENV === 'production') {
+            return { message: 'Test endpoints are disabled in production' };
+        }
+        const user = req.user;
+        const { type } = body;
+        try {
+            let result;
+            switch (type) {
+                case 'welcome':
+                    result = await this.emailService.sendWelcomeEmail(user.email, user.firstName);
+                    break;
+                case 'otp':
+                    result = await this.emailService.sendPasswordResetOTP(user.email, '123456', user.firstName);
+                    break;
+                case 'transaction':
+                    result = await this.emailService.sendTransactionNotification(user.email, user.firstName, {
+                        type: 'completed',
+                        amount: '100.00',
+                        currency: 'USD',
+                        recipient: 'John Doe',
+                        reference: 'TXN123456789'
+                    });
+                    break;
+                default:
+                    return { success: false, message: 'Invalid email type' };
+            }
+            return {
+                success: result,
+                message: result ? 'Test email sent successfully via SendGrid' : 'Failed to send test email',
+                emailType: type
+            };
+        }
+        catch (error) {
+            return {
+                success: false,
+                message: 'Error sending test email',
+                error: error.message
+            };
+        }
     }
 };
 exports.UsersController = UsersController;
@@ -172,11 +215,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, Number, Number, String, String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getTransferHistory", null);
+__decorate([
+    (0, common_1.Post)('test-email'),
+    (0, swagger_1.ApiOperation)({ summary: 'Test SendGrid email functionality (Development only)' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Test email sent successfully' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "testEmail", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)('JWT-auth'),
-    __metadata("design:paramtypes", [users_service_1.UsersService])
+    __metadata("design:paramtypes", [users_service_1.UsersService,
+        email_service_1.EmailService])
 ], UsersController);
 //# sourceMappingURL=users.controller.js.map

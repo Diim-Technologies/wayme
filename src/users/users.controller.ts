@@ -1,15 +1,19 @@
-import { Controller, Get, Put, Body, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/users.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailService } from '../common/services/email.service';
 
 @ApiTags('Users')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private readonly emailService: EmailService,
+  ) {}
 
   @Get('me')
   @ApiOperation({ 
@@ -141,7 +145,53 @@ export class UsersController {
       req.user.id,
       page ? Number(page) : 1,
       limit ? Number(limit) : 10,
-     
     );
+  }
+
+  @Post('test-email')
+  @ApiOperation({ summary: 'Test SendGrid email functionality (Development only)' })
+  @ApiResponse({ status: 200, description: 'Test email sent successfully' })
+  async testEmail(@Request() req, @Body() body: { type: 'welcome' | 'otp' | 'transaction' }) {
+    if (process.env.NODE_ENV === 'production') {
+      return { message: 'Test endpoints are disabled in production' };
+    }
+
+    const user = req.user;
+    const { type } = body;
+
+    try {
+      let result;
+      switch (type) {
+        case 'welcome':
+          result = await this.emailService.sendWelcomeEmail(user.email, user.firstName);
+          break;
+        case 'otp':
+          result = await this.emailService.sendPasswordResetOTP(user.email, '123456', user.firstName);
+          break;
+        case 'transaction':
+          result = await this.emailService.sendTransactionNotification(user.email, user.firstName, {
+            type: 'completed',
+            amount: '100.00',
+            currency: 'USD',
+            recipient: 'John Doe',
+            reference: 'TXN123456789'
+          });
+          break;
+        default:
+          return { success: false, message: 'Invalid email type' };
+      }
+
+      return {
+        success: result,
+        message: result ? 'Test email sent successfully via SendGrid' : 'Failed to send test email',
+        emailType: type
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Error sending test email',
+        error: error.message
+      };
+    }
   }
 }

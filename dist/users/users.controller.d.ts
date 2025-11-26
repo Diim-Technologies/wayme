@@ -1,8 +1,10 @@
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/users.dto';
+import { EmailService } from '../common/services/email.service';
 export declare class UsersController {
     private usersService;
-    constructor(usersService: UsersService);
+    private readonly emailService;
+    constructor(usersService: UsersService, emailService: EmailService);
     getCurrentUser(req: any): Promise<import("../entities").User>;
     getProfile(req: any): Promise<{
         user: {
@@ -39,5 +41,28 @@ export declare class UsersController {
             totalItems: number;
             itemsPerPage: number;
         };
+    }>;
+    testEmail(req: any, body: {
+        type: 'welcome' | 'otp' | 'transaction';
+    }): Promise<{
+        message: string;
+        success?: undefined;
+        emailType?: undefined;
+        error?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        emailType?: undefined;
+        error?: undefined;
+    } | {
+        success: any;
+        message: string;
+        emailType: "welcome" | "otp" | "transaction";
+        error?: undefined;
+    } | {
+        success: boolean;
+        message: string;
+        error: any;
+        emailType?: undefined;
     }>;
 }
