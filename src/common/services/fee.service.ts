@@ -1,173 +1,179 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { Decimal } from '@prisma/client/runtime/library';
-import { FeeType, Prisma } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Decimal } from 'decimal.js';
+import { Fee } from '../../entities';
+import { FeeType } from '../../enums/common.enum';
 
 @Injectable()
 export class FeeService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Fee)
+    private feeRepository: Repository<Fee>,
+  ) {}
 
-  async calculateTransferFee(amount: Decimal, transferType: string, paymentMethodType: string, currency = 'NGN') {
-    // Determine applicable fee configurations
-    const applicableTypes = [transferType.toUpperCase(), paymentMethodType.toUpperCase()];
-    
+  async calculateTransferFee(amount: Decimal, transferType: string = 'DOMESTIC', paymentMethod: string = 'BANK_TRANSFER', currency: string = 'NGN'): Promise<Decimal> {
     try {
-      const feeConfig = await this.prisma.feeConfiguration.findFirst({
+      const feeConfig = await this.feeRepository.findOne({
         where: {
-          type: 'TRANSFER_FEE',
+          type: FeeType.TRANSFER_FEE,
           isActive: true,
-          currency,
-          OR: applicableTypes.map(type => ({
-            applicableTo: {
-              contains: type
-            }
-          }))
         },
-        orderBy: { createdAt: 'desc' }, // Get the most recent config
       });
 
       if (!feeConfig) {
-        // Fallback to default fee calculation
-        return this.getDefaultTransferFee(amount);
+        // Fallback fee calculation
+        return this.calculateFallbackTransferFee(amount, transferType, paymentMethod);
       }
 
-      let feeAmount = new Decimal(0);
+      let calculatedFee = new Decimal(0);
 
-      // Calculate percentage fee if configured
-      if (feeConfig.percentage) {
-        feeAmount = amount.mul(feeConfig.percentage.div(100));
+      // Apply percentage fee
+      if (feeConfig.percentageRate) {
+        calculatedFee = amount.mul(feeConfig.percentageRate);
       }
 
-      // Add fixed amount if configured
+      // Apply fixed fee
       if (feeConfig.fixedAmount) {
-        feeAmount = feeAmount.add(feeConfig.fixedAmount);
+        calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
       }
 
-      // Apply minimum fee if configured
-      if (feeConfig.minimumFee && feeAmount.lt(feeConfig.minimumFee)) {
-        feeAmount = feeConfig.minimumFee;
+      // Apply minimum fee constraint
+      if (feeConfig.minimumAmount && calculatedFee.lt(feeConfig.minimumAmount)) {
+        calculatedFee = new Decimal(feeConfig.minimumAmount);
       }
 
-      // Apply maximum fee if configured
-      if (feeConfig.maximumFee && feeAmount.gt(feeConfig.maximumFee)) {
-        feeAmount = feeConfig.maximumFee;
+      // Apply maximum fee constraint
+      if (feeConfig.maximumAmount && calculatedFee.gt(feeConfig.maximumAmount)) {
+        calculatedFee = new Decimal(feeConfig.maximumAmount);
       }
 
-      return feeAmount;
+      return calculatedFee;
     } catch (error) {
-      // Fallback to default fee calculation on error
-      return this.getDefaultTransferFee(amount);
+      console.error('Error calculating transfer fee:', error);
+      return this.calculateFallbackTransferFee(amount, transferType, paymentMethod);
     }
   }
 
-  async calculateCurrencyConversionFee(amount: Decimal, fromCurrency: string, toCurrency: string) {
-    if (fromCurrency === toCurrency) {
+  async calculateCurrencyConversionFee(amount: Decimal, sourceCurrency: string, targetCurrency: string): Promise<Decimal> {
+    if (sourceCurrency === targetCurrency) {
       return new Decimal(0);
     }
 
     try {
-      const feeConfig = await this.prisma.feeConfiguration.findFirst({
+      const feeConfig = await this.feeRepository.findOne({
         where: {
-          type: 'CURRENCY_CONVERSION_FEE',
+          type: FeeType.CURRENCY_CONVERSION_FEE,
           isActive: true,
-          OR: [
-            { currency: fromCurrency },
-            { currency: 'ALL' }, // Universal currency conversion fee
-          ],
         },
-        orderBy: { createdAt: 'desc' },
       });
 
       if (!feeConfig) {
-        // Default 0.5% conversion fee
+        // Default conversion fee: 0.5% of amount
         return amount.mul(0.005);
       }
 
-      let feeAmount = new Decimal(0);
+      let calculatedFee = new Decimal(0);
 
-      if (feeConfig.percentage) {
-        feeAmount = amount.mul(feeConfig.percentage.div(100));
+      if (feeConfig.percentageRate) {
+        calculatedFee = amount.mul(feeConfig.percentageRate);
       }
 
       if (feeConfig.fixedAmount) {
-        feeAmount = feeAmount.add(feeConfig.fixedAmount);
+        calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
       }
 
-      if (feeConfig.minimumFee && feeAmount.lt(feeConfig.minimumFee)) {
-        feeAmount = feeConfig.minimumFee;
+      if (feeConfig.minimumAmount && calculatedFee.lt(feeConfig.minimumAmount)) {
+        calculatedFee = new Decimal(feeConfig.minimumAmount);
       }
 
-      if (feeConfig.maximumFee && feeAmount.gt(feeConfig.maximumFee)) {
-        feeAmount = feeConfig.maximumFee;
+      if (feeConfig.maximumAmount && calculatedFee.gt(feeConfig.maximumAmount)) {
+        calculatedFee = new Decimal(feeConfig.maximumAmount);
       }
 
-      return feeAmount;
+      return calculatedFee;
     } catch (error) {
-      // Default 0.5% conversion fee on error
-      return amount.mul(0.005);
+      console.error('Error calculating conversion fee:', error);
+      return amount.mul(0.005); // 0.5% fallback
     }
   }
 
+  private calculateFallbackTransferFee(amount: Decimal, transferType: string, paymentMethod: string): Decimal {
+    // Fallback fee structure
+    let feeRate = 0.025; // 2.5% base rate
+    let minimumFee = 50; // ₦50 minimum
+    let maximumFee = 500; // ₦500 maximum
+
+    // Adjust based on transfer type
+    if (transferType === 'INTERNATIONAL') {
+      feeRate = 0.035; // 3.5% for international
+      minimumFee = 100; // ₦100 minimum
+      maximumFee = 1000; // ₦1000 maximum
+    }
+
+    // Adjust based on payment method
+    if (paymentMethod === 'CARD') {
+      feeRate += 0.01; // Additional 1% for card payments
+    }
+
+    let fee = amount.mul(feeRate);
+    
+    if (fee.lt(minimumFee)) {
+      fee = new Decimal(minimumFee);
+    } else if (fee.gt(maximumFee)) {
+      fee = new Decimal(maximumFee);
+    }
+
+    return fee;
+  }
+
   async getAllFeeConfigurations() {
-    return this.prisma.feeConfiguration.findMany({
+    return this.feeRepository.find({
       where: { isActive: true },
-      orderBy: { createdAt: 'desc' },
+      order: { type: 'ASC' },
     });
   }
 
   async createFeeConfiguration(data: {
     name: string;
-    type: FeeType | string;  // allow string from API
+    type: string;
     percentage?: number;
     fixedAmount?: number;
     minimumFee?: number;
     maximumFee?: number;
     currency?: string;
-    applicableTo?: string[];
   }) {
-    return this.prisma.feeConfiguration.create({
-      data: {
-        name: data.name,
-        type: FeeType[data.type as keyof typeof FeeType],   // 🔥 Convert string → enum
-        percentage: data.percentage ? new Decimal(data.percentage) : undefined,
-        fixedAmount: data.fixedAmount ? new Decimal(data.fixedAmount) : undefined,
-        minimumFee: data.minimumFee ? new Decimal(data.minimumFee) : undefined,
-        maximumFee: data.maximumFee ? new Decimal(data.maximumFee) : undefined,
-        currency: data.currency,
-        applicableTo: data.applicableTo?.join(',')
-      },
+    const feeConfig = this.feeRepository.create({
+      name: data.name,
+      type: data.type as FeeType,
+      percentageRate: data.percentage,
+      fixedAmount: data.fixedAmount,
+      minimumAmount: data.minimumFee,
+      maximumAmount: data.maximumFee,
+      currency: data.currency || 'NGN',
     });
+
+    return this.feeRepository.save(feeConfig);
   }
-  
 
   async updateFeeConfiguration(id: string, data: {
     percentage?: number;
     fixedAmount?: number;
     minimumFee?: number;
     maximumFee?: number;
-    applicableTo?: string[];
     isActive?: boolean;
-    type?: FeeType | string;
-
   }) {
-    return this.prisma.feeConfiguration.update({
-      where: { id },
-      data: {
-        ...data,
-        type: data.type ? FeeType[data.type as keyof typeof FeeType] : undefined,
+    await this.feeRepository.update(
+      { id },
+      {
+        percentageRate: data.percentage,
+        fixedAmount: data.fixedAmount,
+        minimumAmount: data.minimumFee,
+        maximumAmount: data.maximumFee,
+        isActive: data.isActive,
+      }
+    );
 
-        percentage: data.percentage !== undefined ? new Decimal(data.percentage) : undefined,
-        fixedAmount: data.fixedAmount !== undefined ? new Decimal(data.fixedAmount) : undefined,
-        minimumFee: data.minimumFee !== undefined ? new Decimal(data.minimumFee) : undefined,
-        maximumFee: data.maximumFee !== undefined ? new Decimal(data.maximumFee) : undefined,
-        applicableTo: data.applicableTo ? data.applicableTo.join(',') : undefined, // Convert array to comma-separated string
-      },
-    });
-  }
-
-  private getDefaultTransferFee(amount: Decimal): Decimal {
-    // Default fee: 2.5% with minimum 50 NGN and maximum 500 NGN
-    const percentageFee = amount.mul(0.025);
-    return Decimal.max(new Decimal(50), Decimal.min(new Decimal(500), percentageFee));
+    return this.feeRepository.findOne({ where: { id } });
   }
 }

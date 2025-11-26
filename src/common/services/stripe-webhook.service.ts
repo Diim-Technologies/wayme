@@ -1,12 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Transfer, Transaction, PaymentMethod, Notification, User } from '../../entities';
+import { TransferStatus, TransactionStatus, NotificationType } from '../../enums/common.enum';
 import Stripe from 'stripe';
 
 @Injectable()
 export class StripeWebhookService {
   private readonly logger = new Logger(StripeWebhookService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Transfer)
+    private transferRepository: Repository<Transfer>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(PaymentMethod)
+    private paymentMethodRepository: Repository<PaymentMethod>,
+    @InjectRepository(Notification)
+    private notificationRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private dataSource: DataSource,
+  ) {}
 
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     this.logger.log(`Received webhook event: ${event.type} with ID: ${event.id}`);
@@ -14,15 +29,15 @@ export class StripeWebhookService {
     try {
       switch (event.type) {
         case 'payment_intent.succeeded':
-          await this.handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+          await this.handlePaymentIntentSucceeded(event);
           break;
 
         case 'payment_intent.payment_failed':
-          await this.handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+          await this.handlePaymentIntentFailed(event);
           break;
 
         case 'payment_intent.canceled':
-          await this.handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
+          await this.handlePaymentIntentCanceled(event);
           break;
 
         case 'payment_intent.requires_action':
@@ -34,11 +49,11 @@ export class StripeWebhookService {
           break;
 
         case 'payment_method.detached':
-          await this.handlePaymentMethodDetached(event.data.object as Stripe.PaymentMethod);
+          await this.handlePaymentMethodDetached(event);
           break;
 
         case 'setup_intent.succeeded':
-          await this.handleSetupIntentSucceeded(event.data.object as Stripe.SetupIntent);
+          await this.handleSetupIntentSucceeded(event);
           break;
 
         case 'setup_intent.setup_failed':
@@ -66,307 +81,313 @@ export class StripeWebhookService {
     }
   }
 
-  /* ===========================================================
-     PAYMENT INTENT SUCCEEDED
-  ============================================================ */
-  private async handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-    this.logger.log(`Payment succeeded: ${paymentIntent.id}`);
-
-    const transferId = paymentIntent.metadata?.transferId;
-    if (!transferId) {
-      this.logger.warn(`No transfer ID found in payment intent metadata: ${paymentIntent.id}`);
-      return;
-    }
+  async handlePaymentIntentSucceeded(event: Stripe.Event) {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    
+    this.logger.log(`Payment intent succeeded: ${paymentIntent.id}`);
 
     try {
-      const transfer = await this.prisma.transfer.update({
-        where: { id: transferId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-        },
-        include: {
-          sender: {
-            select: { firstName: true, lastName: true, email: true },
-          },
-        },
-      });
+      // Find the transfer associated with this payment intent
+      const transferId = paymentIntent.metadata?.transferId;
+      if (!transferId) {
+        this.logger.warn(`No transfer ID found in payment intent metadata: ${paymentIntent.id}`);
+        return;
+      }
 
-      /* SAFE JSON MAPPING */
-      const gatewayData = {
-        stripePaymentIntentId: paymentIntent.id,
-        chargeId:
-          typeof paymentIntent.latest_charge === 'string'
-            ? paymentIntent.latest_charge
-            : paymentIntent.latest_charge?.id ?? null,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        paymentMethod:
-          typeof paymentIntent.payment_method === 'string'
-            ? paymentIntent.payment_method
-            : paymentIntent.payment_method?.id ?? null,
-      };
-
-      await this.prisma.transaction.updateMany({
-        where: {
-          transferId,
-          type: 'DEBIT',
-          status: 'PENDING',
-        },
-        data: {
-          status: 'COMPLETED',
-          gatewayRef: paymentIntent.id,
-          gatewayData,
+      await this.dataSource.transaction(async (manager) => {
+        // Update transfer status to completed
+        await manager.update(Transfer, { id: transferId }, {
+          status: TransferStatus.COMPLETED,
           processedAt: new Date(),
-        },
-      });
+          completedAt: new Date(),
+        });
 
-      await this.prisma.notification.create({
-        data: {
-          userId: transfer.senderId,
-          type: 'TRANSFER_COMPLETED',
-          title: 'Payment Successful',
-          message: `Your payment of ${this.formatAmount(paymentIntent.amount, paymentIntent.currency)} has been processed successfully.`,
-          data: {
-            transferId,
-            paymentIntentId: paymentIntent.id,
+        // Update related transactions
+        await manager.update(Transaction, { transferId }, {
+          status: TransactionStatus.SUCCESS,
+          gatewayRef: paymentIntent.id,
+          gatewayResponse: JSON.stringify({
+            status: paymentIntent.status,
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
-          },
-        },
+          }),
+        });
+
+        // Create success notification
+        const transfer = await manager.findOne(Transfer, {
+          where: { id: transferId },
+          relations: ['sender'],
+        });
+
+        if (transfer) {
+          const notification = manager.create(Notification, {
+            userId: transfer.senderId,
+            type: NotificationType.TRANSFER_COMPLETED,
+            title: 'Transfer Completed',
+            message: `Your transfer of ₦${transfer.amount.toLocaleString()} has been completed successfully.`,
+            data: {
+              transferId,
+              reference: transfer.reference,
+              amount: transfer.amount,
+              paymentIntentId: paymentIntent.id,
+            },
+          });
+          await manager.save(Notification, notification);
+        }
       });
 
-      this.logger.log(`Transfer ${transferId} marked as completed`);
+      this.logger.log(`Successfully processed payment intent: ${paymentIntent.id}`);
     } catch (error) {
-      this.logger.error(`Failed to update transfer ${transferId} after successful payment:`, error);
+      this.logger.error(`Failed to process payment intent success: ${paymentIntent.id}`, error);
     }
   }
 
-  /* ===========================================================
-     PAYMENT INTENT FAILED
-  ============================================================ */
-  private async handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-    this.logger.log(`Payment failed: ${paymentIntent.id}`);
-
-    const transferId = paymentIntent.metadata?.transferId;
-    if (!transferId) {
-      this.logger.warn(`No transfer ID found in payment intent metadata: ${paymentIntent.id}`);
-      return;
-    }
+  async handlePaymentIntentFailed(event: Stripe.Event) {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    
+    this.logger.log(`Payment intent failed: ${paymentIntent.id}`);
 
     try {
-      const failureReason = paymentIntent.last_payment_error?.message || 'Payment declined';
+      const transferId = paymentIntent.metadata?.transferId;
+      if (!transferId) {
+        this.logger.warn(`No transfer ID found in payment intent metadata: ${paymentIntent.id}`);
+        return;
+      }
 
-      const transfer = await this.prisma.transfer.update({
-        where: { id: transferId },
-        data: { status: 'FAILED' },
-        include: {
-          sender: {
-            select: { firstName: true, lastName: true, email: true },
-          },
-        },
-      });
+      const failureReason = paymentIntent.last_payment_error?.message || 'Payment failed';
 
-      /* SAFE JSON MAPPING */
-      const errorData = paymentIntent.last_payment_error
-        ? {
-            code: paymentIntent.last_payment_error.code,
-            message: paymentIntent.last_payment_error.message,
-            type: paymentIntent.last_payment_error.type,
-            decline_code: paymentIntent.last_payment_error.decline_code,
-            param: paymentIntent.last_payment_error.param,
-          }
-        : null;
+      await this.dataSource.transaction(async (manager) => {
+        // Update transfer status to failed
+        await manager.update(Transfer, { id: transferId }, {
+          status: TransferStatus.FAILED,
+        });
 
-      await this.prisma.transaction.updateMany({
-        where: {
-          transferId,
-          type: 'DEBIT',
-          status: 'PENDING',
-        },
-        data: {
-          status: 'FAILED',
+        // Update related transactions
+        await manager.update(Transaction, { transferId }, {
+          status: TransactionStatus.FAILED,
           gatewayRef: paymentIntent.id,
           failureReason,
-          gatewayData: {
-            stripePaymentIntentId: paymentIntent.id,
-            error: errorData,
-          },
-          processedAt: new Date(),
-        },
+          gatewayResponse: JSON.stringify({
+            status: paymentIntent.status,
+            error: paymentIntent.last_payment_error,
+          }),
+        });
+
+        // Create failure notification
+        const transfer = await manager.findOne(Transfer, {
+          where: { id: transferId },
+          relations: ['sender'],
+        });
+
+        if (transfer) {
+          const notification = manager.create(Notification, {
+            userId: transfer.senderId,
+            type: NotificationType.TRANSFER_FAILED,
+            title: 'Transfer Failed',
+            message: `Your transfer of ₦${transfer.amount.toLocaleString()} has failed. Reason: ${failureReason}`,
+            data: {
+              transferId,
+              reference: transfer.reference,
+              amount: transfer.amount,
+              failureReason,
+              paymentIntentId: paymentIntent.id,
+            },
+          });
+          await manager.save(Notification, notification);
+        }
       });
 
-      await this.prisma.notification.create({
-        data: {
-          userId: transfer.senderId,
-          type: 'TRANSFER_FAILED',
-          title: 'Payment Failed',
-          message: `Your payment failed: ${failureReason}. Please try again or use a different payment method.`,
-          data: {
-            transferId,
-            paymentIntentId: paymentIntent.id,
-            failureReason,
-          },
-        },
-      });
-
-      this.logger.log(`Transfer ${transferId} marked as failed: ${failureReason}`);
+      this.logger.log(`Successfully processed payment intent failure: ${paymentIntent.id}`);
     } catch (error) {
-      this.logger.error(`Failed to update transfer ${transferId} after payment failure:`, error);
+      this.logger.error(`Failed to process payment intent failure: ${paymentIntent.id}`, error);
     }
   }
 
-  /* ===========================================================
-     PAYMENT INTENT CANCELED
-  ============================================================ */
-  private async handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent): Promise<void> {
-    this.logger.log(`Payment canceled: ${paymentIntent.id}`);
-
-    const transferId = paymentIntent.metadata?.transferId;
-    if (!transferId) return;
+  async handlePaymentIntentCanceled(event: Stripe.Event) {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+    
+    this.logger.log(`Payment intent canceled: ${paymentIntent.id}`);
 
     try {
-      await this.prisma.transfer.update({
-        where: { id: transferId },
-        data: { status: 'CANCELLED' },
-      });
+      const transferId = paymentIntent.metadata?.transferId;
+      if (transferId) {
+        await this.dataSource.transaction(async (manager) => {
+          await manager.update(Transfer, { id: transferId }, {
+            status: TransferStatus.CANCELLED,
+          });
 
-      await this.prisma.transaction.updateMany({
-        where: {
-          transferId,
-          type: 'DEBIT',
-          status: 'PENDING',
-        },
-        data: {
-          status: 'CANCELLED',
-          gatewayRef: paymentIntent.id,
-          processedAt: new Date(),
-        },
-      });
+          await manager.update(Transaction, { transferId }, {
+            status: TransactionStatus.CANCELLED,
+            gatewayRef: paymentIntent.id,
+          });
+        });
+      }
 
-      this.logger.log(`Transfer ${transferId} marked as canceled`);
+      this.logger.log(`Successfully processed payment intent cancellation: ${paymentIntent.id}`);
     } catch (error) {
-      this.logger.error(`Failed to update transfer ${transferId} after cancellation:`, error);
+      this.logger.error(`Failed to process payment intent cancellation: ${paymentIntent.id}`, error);
     }
   }
 
-  /* ===========================================================
-     REQUIRES ACTION (3D Secure / Authentication)
-  ============================================================ */
-  private async handlePaymentIntentRequiresAction(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+  async handlePaymentIntentRequiresAction(paymentIntent: Stripe.PaymentIntent): Promise<void> {
     this.logger.log(`Payment requires action: ${paymentIntent.id}`);
 
     const transferId = paymentIntent.metadata?.transferId;
     if (!transferId) return;
 
     try {
-      const transfer = await this.prisma.transfer.findUnique({
+      const transfer = await this.transferRepository.findOne({
         where: { id: transferId },
-        include: { sender: true },
+        relations: ['sender'],
       });
 
       if (transfer) {
-        await this.prisma.notification.create({
+        const notification = this.notificationRepository.create({
+          userId: transfer.senderId,
+          type: NotificationType.SECURITY_ALERT,
+          title: 'Payment Requires Verification',
+          message: 'Your payment requires additional verification. Please complete the authentication process.',
           data: {
-            userId: transfer.senderId,
-            type: 'SECURITY_ALERT',
-            title: 'Payment Requires Verification',
-            message: 'Your payment requires additional verification. Please complete the authentication process.',
-            data: {
-              transferId,
-              paymentIntentId: paymentIntent.id,
-              clientSecret: paymentIntent.client_secret,
-            },
+            transferId,
+            paymentIntentId: paymentIntent.id,
+            clientSecret: paymentIntent.client_secret,
           },
         });
+        await this.notificationRepository.save(notification);
       }
     } catch (error) {
       this.logger.error(`Failed to handle payment requiring action for ${transferId}:`, error);
     }
   }
 
-  /* ===========================================================
-     PAYMENT METHOD ATTACHED / DETACHED
-  ============================================================ */
-  private async handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod): Promise<void> {
+  async handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod): Promise<void> {
     this.logger.log(`Payment method attached: ${paymentMethod.id}`);
   }
 
-  private async handlePaymentMethodDetached(paymentMethod: Stripe.PaymentMethod): Promise<void> {
+  async handlePaymentMethodDetached(event: Stripe.Event) {
+    const paymentMethod = event.data.object as Stripe.PaymentMethod;
+    
     this.logger.log(`Payment method detached: ${paymentMethod.id}`);
 
     try {
-      await this.prisma.paymentMethod.updateMany({
-        where: { stripeId: paymentMethod.id },
-        data: { isActive: false },
-      });
+      // Deactivate the payment method in our database
+      await this.paymentMethodRepository.update(
+        { stripeId: paymentMethod.id },
+        { isActive: false }
+      );
+
+      this.logger.log(`Successfully processed payment method detachment: ${paymentMethod.id}`);
     } catch (error) {
-      this.logger.error(`Failed to update detached payment method ${paymentMethod.id}:`, error);
+      this.logger.error(`Failed to process payment method detachment: ${paymentMethod.id}`, error);
     }
   }
 
-  /* ===========================================================
-     SETUP INTENT
-  ============================================================ */
-  private async handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent): Promise<void> {
+  async handleSetupIntentSucceeded(event: Stripe.Event) {
+    const setupIntent = event.data.object as Stripe.SetupIntent;
+    
     this.logger.log(`Setup intent succeeded: ${setupIntent.id}`);
+
+    try {
+      const userId = setupIntent.metadata?.userId;
+      if (userId) {
+        const transfer = await this.transferRepository.findOne({
+          where: { senderId: userId },
+          order: { createdAt: 'DESC' },
+        });
+
+        if (transfer) {
+          const notification = this.notificationRepository.create({
+            userId,
+            type: NotificationType.PAYMENT_METHOD_ADDED,
+            title: 'Payment Method Added',
+            message: 'Your payment method has been successfully added to your account.',
+            data: {
+              setupIntentId: setupIntent.id,
+            },
+          });
+          await this.notificationRepository.save(notification);
+        }
+      }
+
+      this.logger.log(`Successfully processed setup intent: ${setupIntent.id}`);
+    } catch (error) {
+      this.logger.error(`Failed to process setup intent: ${setupIntent.id}`, error);
+    }
   }
 
-  private async handleSetupIntentFailed(setupIntent: Stripe.SetupIntent): Promise<void> {
+  async handleSetupIntentFailed(setupIntent: Stripe.SetupIntent): Promise<void> {
     this.logger.log(`Setup intent failed: ${setupIntent.id}`);
   }
 
-  /* ===========================================================
-     DISPUTE CREATED
-  ============================================================ */
-  private async handleChargeDisputeCreated(dispute: Stripe.Dispute): Promise<void> {
+  async handleChargeDisputeCreated(dispute: Stripe.Dispute): Promise<void> {
     this.logger.log(`Charge dispute created: ${dispute.id} for charge: ${dispute.charge}`);
 
     try {
-      const transaction = await this.prisma.transaction.findFirst({
+      const transaction = await this.transactionRepository.findOne({
         where: { gatewayRef: dispute.charge as string },
-        include: {
-          transfer: {
-            include: { sender: true },
-          },
-        },
+        relations: ['transfer', 'transfer.sender'],
       });
 
       if (transaction?.transfer) {
-        await this.prisma.notification.create({
+        const notification = this.notificationRepository.create({
+          userId: transaction.transfer.senderId,
+          type: NotificationType.SECURITY_ALERT,
+          title: 'Payment Dispute',
+          message: `A dispute has been raised for your payment. We are reviewing the case and will contact you if additional information is needed.`,
           data: {
-            userId: transaction.transfer.senderId,
-            type: 'SECURITY_ALERT',
-            title: 'Payment Dispute',
-            message: `A dispute has been raised for your payment. We are reviewing the case and will contact you if additional information is needed.`,
-            data: {
-              disputeId: dispute.id,
-              transferId: transaction.transfer.id,
-              amount: dispute.amount,
-              reason: dispute.reason,
-            },
+            disputeId: dispute.id,
+            transferId: transaction.transfer.id,
+            amount: dispute.amount,
+            reason: dispute.reason,
           },
         });
+        await this.notificationRepository.save(notification);
       }
     } catch (error) {
       this.logger.error(`Failed to handle dispute ${dispute.id}:`, error);
     }
   }
 
-  /* ===========================================================
-     INVOICE PAYMENT
-  ============================================================ */
-  private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
+  async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
     this.logger.log(`Invoice payment succeeded: ${invoice.id}`);
   }
 
-  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
+  async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     this.logger.log(`Invoice payment failed: ${invoice.id}`);
   }
- 
-  /* ===========================================================
-     HELPERS
-  ============================================================ */
+
+  async handleCustomerSubscriptionDeleted(event: Stripe.Event) {
+    const subscription = event.data.object as Stripe.Subscription;
+    
+    this.logger.log(`Customer subscription deleted: ${subscription.id}`);
+
+    try {
+      // Handle subscription cancellation if applicable
+      const customerId = subscription.customer as string;
+      const transaction = await this.transactionRepository.findOne({
+        where: { gatewayRef: customerId },
+        relations: ['transfer'],
+      });
+
+      if (transaction) {
+        const notification = this.notificationRepository.create({
+          userId: transaction.transfer.senderId,
+          type: NotificationType.SUBSCRIPTION_CANCELLED,
+          title: 'Subscription Cancelled',
+          message: 'Your subscription has been cancelled.',
+          data: {
+            subscriptionId: subscription.id,
+          },
+        });
+        await this.notificationRepository.save(notification);
+      }
+
+      this.logger.log(`Successfully processed subscription deletion: ${subscription.id}`);
+    } catch (error) {
+      this.logger.error(`Failed to process subscription deletion: ${subscription.id}`, error);
+    }
+  }
+
   private formatAmount(amount: number, currency: string): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

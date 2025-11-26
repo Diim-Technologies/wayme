@@ -1,21 +1,29 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Notification, User } from '../entities';
+import { NotificationType } from '../enums/common.enum';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Notification)
+    private notificationRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
 
   async getUserNotifications(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
     const [notifications, total] = await Promise.all([
-      this.prisma.notification.findMany({
+      this.notificationRepository.find({
         where: { userId },
-        orderBy: { createdAt: 'desc' },
+        order: { createdAt: 'DESC' },
         skip,
         take: limit,
       }),
-      this.prisma.notification.count({
+      this.notificationRepository.count({
         where: { userId },
       }),
     ]);
@@ -32,27 +40,27 @@ export class NotificationsService {
   }
 
   async markNotificationAsRead(userId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
-      where: {
+    return this.notificationRepository.update(
+      {
         id: notificationId,
         userId,
       },
-      data: { isRead: true },
-    });
+      { isRead: true }
+    );
   }
 
   async markAllAsRead(userId: string) {
-    return this.prisma.notification.updateMany({
-      where: {
+    return this.notificationRepository.update(
+      {
         userId,
         isRead: false,
       },
-      data: { isRead: true },
-    });
+      { isRead: true }
+    );
   }
 
   async getUnreadCount(userId: string) {
-    const count = await this.prisma.notification.count({
+    const count = await this.notificationRepository.count({
       where: {
         userId,
         isRead: false,
@@ -64,27 +72,27 @@ export class NotificationsService {
 
   async createNotification(
     userId: string,
-    type: string,
+    type: NotificationType,
     title: string,
     message: string,
     data?: any,
   ) {
-    return this.prisma.notification.create({
-      data: {
-        userId,
-        type: type as any,
-        title,
-        message,
-        data,
-      },
+    const notification = this.notificationRepository.create({
+      userId,
+      type,
+      title,
+      message,
+      data,
     });
+
+    return this.notificationRepository.save(notification);
   }
 
   // Helper methods for creating specific notification types
   async notifyTransferSent(userId: string, transferReference: string, amount: number) {
     return this.createNotification(
       userId,
-      'TRANSFER_SENT',
+      NotificationType.TRANSFER_SENT,
       'Transfer Initiated',
       `Your transfer of ₦${(amount / 100).toLocaleString()} with reference ${transferReference} has been initiated.`,
       { transferReference, amount },
@@ -94,7 +102,7 @@ export class NotificationsService {
   async notifyTransferCompleted(userId: string, transferReference: string, amount: number) {
     return this.createNotification(
       userId,
-      'TRANSFER_COMPLETED',
+      NotificationType.TRANSFER_COMPLETED,
       'Transfer Completed',
       `Your transfer of ₦${(amount / 100).toLocaleString()} with reference ${transferReference} has been completed successfully.`,
       { transferReference, amount },
@@ -104,7 +112,7 @@ export class NotificationsService {
   async notifyTransferFailed(userId: string, transferReference: string, amount: number, reason: string) {
     return this.createNotification(
       userId,
-      'TRANSFER_FAILED',
+      NotificationType.TRANSFER_FAILED,
       'Transfer Failed',
       `Your transfer of ₦${(amount / 100).toLocaleString()} with reference ${transferReference} has failed. Reason: ${reason}`,
       { transferReference, amount, reason },
@@ -114,7 +122,7 @@ export class NotificationsService {
   async notifyKycApproved(userId: string) {
     return this.createNotification(
       userId,
-      'KYC_APPROVED',
+      NotificationType.KYC_APPROVED,
       'KYC Verification Approved',
       'Your identity verification has been approved. You can now enjoy full access to all Wayame features.',
     );
@@ -123,7 +131,7 @@ export class NotificationsService {
   async notifyKycRejected(userId: string, reason: string) {
     return this.createNotification(
       userId,
-      'KYC_REJECTED',
+      NotificationType.KYC_REJECTED,
       'KYC Verification Rejected',
       `Your identity verification was rejected. Reason: ${reason}. Please update your documents and try again.`,
       { reason },

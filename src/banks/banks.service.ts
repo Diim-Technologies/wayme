@@ -1,26 +1,29 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Bank } from '../entities';
 import { PaystackService } from '../common/services/paystack.service';
 
 @Injectable()
 export class BanksService {
   constructor(
-    private prisma: PrismaService,
+    @InjectRepository(Bank)
+    private bankRepository: Repository<Bank>,
     private paystackService: PaystackService,
   ) {}
 
   async getAllBanks(country = 'NG') {
-    return this.prisma.bank.findMany({
+    return this.bankRepository.find({
       where: {
         country,
         isActive: true,
       },
-      orderBy: { name: 'asc' },
+      order: { name: 'ASC' },
     });
   }
 
   async getBankByCode(code: string) {
-    const bank = await this.prisma.bank.findUnique({
+    const bank = await this.bankRepository.findOne({
       where: { code },
     });
 
@@ -67,19 +70,33 @@ export class BanksService {
       const syncedBanks = [];
       
       for (const paystackBank of paystackBanks) {
-        const bank = await this.prisma.bank.upsert({
+        // Check if bank exists
+        let bank = await this.bankRepository.findOne({
           where: { code: paystackBank.code },
-          update: {
-            name: paystackBank.name,
-            isActive: true,
-          },
-          create: {
+        });
+
+        if (bank) {
+          // Update existing bank
+          await this.bankRepository.update(
+            { code: paystackBank.code },
+            {
+              name: paystackBank.name,
+              isActive: true,
+            }
+          );
+          bank = await this.bankRepository.findOne({
+            where: { code: paystackBank.code },
+          });
+        } else {
+          // Create new bank
+          bank = this.bankRepository.create({
             name: paystackBank.name,
             code: paystackBank.code,
             country: 'NG',
             isActive: true,
-          },
-        });
+          });
+          await this.bankRepository.save(bank);
+        }
         
         syncedBanks.push(bank);
       }
@@ -116,18 +133,23 @@ export class BanksService {
 
     const seededBanks = [];
     
-    for (const bank of banks) {
-      const seededBank = await this.prisma.bank.upsert({
-        where: { code: bank.code },
-        update: {},
-        create: {
-          name: bank.name,
-          code: bank.code,
-          country: 'NG',
-        },
+    for (const bankData of banks) {
+      // Check if bank exists
+      let bank = await this.bankRepository.findOne({
+        where: { code: bankData.code },
       });
+
+      if (!bank) {
+        // Create new bank
+        bank = this.bankRepository.create({
+          name: bankData.name,
+          code: bankData.code,
+          country: 'NG',
+        });
+        await this.bankRepository.save(bank);
+      }
       
-      seededBanks.push(seededBank);
+      seededBanks.push(bank);
     }
 
     return { 

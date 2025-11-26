@@ -5,8 +5,11 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
+import { User, OTP } from '../entities';
+import { OTPType } from '../enums/common.enum';
 import { EmailService } from '../common/services/email.service';
 import * as bcrypt from 'bcrypt';
 import { 
@@ -21,7 +24,11 @@ import {
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(OTP)
+    private otpRepository: Repository<OTP>,
+    private dataSource: DataSource,
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {}
@@ -30,10 +37,8 @@ export class AuthService {
     const { email, firstName, lastName, phoneNumber, password } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { phoneNumber }],
-      },
+    const existingUser = await this.userRepository.findOne({
+      where: [{ email }, { phoneNumber }],
     });
 
     if (existingUser) {
@@ -48,29 +53,18 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        phoneNumber,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phoneNumber: true,
-        role: true,
-        isVerified: true,
-        kycStatus: true,
-        createdAt: true,
-      },
+    const user = this.userRepository.create({
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      password: hashedPassword,
     });
 
+    const savedUser = await this.userRepository.save(user);
+
     // Generate JWT token
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: savedUser.id, email: savedUser.email, role: savedUser.role };
     const accessToken = this.jwtService.sign(payload);
 
     // Send welcome email
@@ -81,7 +75,17 @@ export class AuthService {
     }
 
     return {
-      user,
+      user: {
+        id: savedUser.id,
+        email: savedUser.email,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        phoneNumber: savedUser.phoneNumber,
+        role: savedUser.role,
+        isVerified: savedUser.isVerified,
+        kycStatus: savedUser.kycStatus,
+        createdAt: savedUser.createdAt,
+      },
       accessToken,
     };
   }
@@ -90,7 +94,7 @@ export class AuthService {
     const { email, password } = loginDto;
 
     // Find user by email
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email },
     });
 
@@ -128,7 +132,7 @@ export class AuthService {
     const { email } = forgotPasswordDto;
 
     // Find user by email
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email },
     });
 
@@ -144,14 +148,13 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Save OTP to database
-    await this.prisma.oTP.create({
-      data: {
-        userId: user.id,
-        code: otp,
-        type: 'PASSWORD_RESET',
-        expiresAt,
-      },
+    const otpEntity = this.otpRepository.create({
+      userId: user.id,
+      code: otp,
+      type: OTPType.PASSWORD_RESET,
+      expiresAt,
     });
+    await this.otpRepository.save(otpEntity);
 
     // Send OTP via email
     try {
@@ -170,7 +173,7 @@ export class AuthService {
     const { email, code } = verifyOTPDto;
 
     // Find user by email
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email },
     });
 
@@ -179,19 +182,16 @@ export class AuthService {
     }
 
     // Find valid OTP
-    const otp = await this.prisma.oTP.findFirst({
+    const otp = await this.otpRepository.findOne({
       where: {
         userId: user.id,
         code,
-        type: 'PASSWORD_RESET',
+        type: OTPType.PASSWORD_RESET,
         isUsed: false,
-        expiresAt: {
-          gt: new Date(),
-        },
       },
     });
 
-    if (!otp) {
+    if (!otp || otp.expiresAt < new Date()) {
       throw new BadRequestException('Invalid or expired OTP code');
     }
 
@@ -205,7 +205,7 @@ export class AuthService {
     const { email, code, newPassword } = resetPasswordDto;
 
     // Find user by email
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email },
     });
 
@@ -214,19 +214,16 @@ export class AuthService {
     }
 
     // Find and validate OTP
-    const otp = await this.prisma.oTP.findFirst({
+    const otp = await this.otpRepository.findOne({
       where: {
         userId: user.id,
         code,
-        type: 'PASSWORD_RESET',
+        type: OTPType.PASSWORD_RESET,
         isUsed: false,
-        expiresAt: {
-          gt: new Date(),
-        },
       },
     });
 
-    if (!otp) {
+    if (!otp || otp.expiresAt < new Date()) {
       throw new BadRequestException('Invalid or expired OTP code');
     }
 
@@ -234,17 +231,11 @@ export class AuthService {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Update user password and mark OTP as used
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: user.id },
-        data: { password: hashedPassword },
-      }),
-      this.prisma.oTP.update({
-        where: { id: otp.id },
-        data: { isUsed: true },
-      }),
-    ]);
+    // Update user password and mark OTP as used in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(User, { id: user.id }, { password: hashedPassword });
+      await manager.update(OTP, { id: otp.id }, { isUsed: true });
+    });
 
     // Send password change confirmation email
     try {
@@ -262,7 +253,7 @@ export class AuthService {
     const { currentPassword, newPassword } = changePasswordDto;
 
     // Find user
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id: userId },
     });
 
@@ -287,10 +278,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
+    await this.userRepository.update({ id: userId }, { password: hashedPassword });
 
     // Send password change confirmation email
     try {
@@ -305,7 +293,7 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id: userId },
       select: {
         id: true,
@@ -334,12 +322,10 @@ export class AuthService {
 
   async cleanupExpiredOTPs() {
     // Clean up expired OTPs (run this periodically)
-    await this.prisma.oTP.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-    });
+    await this.otpRepository
+      .createQueryBuilder()
+      .delete()
+      .where('expiresAt < :now', { now: new Date() })
+      .execute();
   }
 }

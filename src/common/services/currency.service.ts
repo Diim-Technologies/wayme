@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from 'decimal.js';
+import { ExchangeRate } from '../../entities';
 import * as https from 'https';
 
 interface ExchangeRateResponse {
@@ -15,7 +17,10 @@ export class CurrencyService {
   // Major currencies to track
   private readonly supportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NGN'];
   
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(ExchangeRate)
+    private exchangeRateRepository: Repository<ExchangeRate>,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_6AM)
   async updateExchangeRates() {
@@ -78,28 +83,31 @@ export class CurrencyService {
       if (!this.supportedCurrencies.includes(toCurrency)) continue;
       
       try {
-        await this.prisma.exchangeRate.upsert({
-          where: {
-            fromCurrency_toCurrency: {
-              fromCurrency,
-              toCurrency,
-            },
-          },
-          update: {
-            rate: new Decimal(rate),
-            buyRate: new Decimal(rate * 0.998), // Slightly lower buy rate
-            sellRate: new Decimal(rate * 1.002), // Slightly higher sell rate
-            lastUpdated: new Date(),
-          },
-          create: {
+        // Check if rate exists
+        let exchangeRate = await this.exchangeRateRepository.findOne({
+          where: { fromCurrency, toCurrency },
+        });
+
+        if (exchangeRate) {
+          // Update existing rate
+          await this.exchangeRateRepository.update(
+            { fromCurrency, toCurrency },
+            {
+              rate: rate,
+              updatedAt: new Date(),
+            }
+          );
+        } else {
+          // Create new rate
+          exchangeRate = this.exchangeRateRepository.create({
             fromCurrency,
             toCurrency,
-            rate: new Decimal(rate),
-            buyRate: new Decimal(rate * 0.998),
-            sellRate: new Decimal(rate * 1.002),
-            source: 'EXTERNAL_API',
-          },
-        });
+            rate: rate,
+            provider: 'EXTERNAL_API',
+          });
+          await this.exchangeRateRepository.save(exchangeRate);
+        }
+        
         this.logger.log(`Rate updated: ${fromCurrency}/${toCurrency} = ${rate}`);
       } catch (error) {
         this.logger.error(`Failed to update ${fromCurrency}/${toCurrency} rate:`, error);
@@ -113,36 +121,21 @@ export class CurrencyService {
     }
 
     try {
-      const exchangeRate = await this.prisma.exchangeRate.findUnique({
-        where: {
-          fromCurrency_toCurrency: {
-            fromCurrency,
-            toCurrency,
-          },
-          isActive: true,
-        },
+      const exchangeRate = await this.exchangeRateRepository.findOne({
+        where: { fromCurrency, toCurrency, isActive: true },
       });
 
       if (!exchangeRate) {
         // Try reverse rate
-        const reverseRate = await this.prisma.exchangeRate.findUnique({
-          where: {
-            fromCurrency_toCurrency: {
-              fromCurrency: toCurrency,
-              toCurrency: fromCurrency,
-            },
-            isActive: true,
-          },
+        const reverseRate = await this.exchangeRateRepository.findOne({
+          where: { fromCurrency: toCurrency, toCurrency: fromCurrency, isActive: true },
         });
 
         if (reverseRate) {
-          const rate = type === 'buy' ? reverseRate.sellRate || reverseRate.rate 
-                     : type === 'sell' ? reverseRate.buyRate || reverseRate.rate 
-                     : reverseRate.rate;
-          return new Decimal(1).div(rate);
+          return new Decimal(1).div(reverseRate.rate);
         }
 
-        // Fallback to static rates if no database rates found
+        // Fallback to static rates
         const fallbackRates: { [key: string]: number } = {
           'NGN_USD': 0.0012,
           'NGN_GBP': 0.001,
@@ -157,25 +150,14 @@ export class CurrencyService {
         return new Decimal(fallbackRate);
       }
 
-      switch (type) {
-        case 'buy':
-          return exchangeRate.buyRate || exchangeRate.rate;
-        case 'sell':
-          return exchangeRate.sellRate || exchangeRate.rate;
-        default:
-          return exchangeRate.rate;
-      }
+      return new Decimal(exchangeRate.rate);
     } catch (error) {
       this.logger.error(`Error getting exchange rate for ${fromCurrency}/${toCurrency}:`, error);
       
       // Fallback to static rates on error
       const fallbackRates: { [key: string]: number } = {
         'NGN_USD': 0.0012,
-        'NGN_GBP': 0.001,
-        'NGN_EUR': 0.0011,
         'USD_NGN': 830,
-        'GBP_NGN': 1000,
-        'EUR_NGN': 910,
       };
 
       const rateKey = `${fromCurrency}_${toCurrency}`;
@@ -185,38 +167,36 @@ export class CurrencyService {
   }
 
   async getAllExchangeRates() {
-    return this.prisma.exchangeRate.findMany({
+    return this.exchangeRateRepository.find({
       where: { isActive: true },
-      orderBy: [
-        { fromCurrency: 'asc' },
-        { toCurrency: 'asc' },
-      ],
+      order: { fromCurrency: 'ASC', toCurrency: 'ASC' },
     });
   }
 
   async manualRateUpdate(fromCurrency: string, toCurrency: string, rate: number, buyRate?: number, sellRate?: number) {
-    return this.prisma.exchangeRate.upsert({
-      where: {
-        fromCurrency_toCurrency: {
-          fromCurrency,
-          toCurrency,
-        },
-      },
-      update: {
-        rate: new Decimal(rate),
-        buyRate: buyRate ? new Decimal(buyRate) : undefined,
-        sellRate: sellRate ? new Decimal(sellRate) : undefined,
-        source: 'MANUAL',
-        lastUpdated: new Date(),
-      },
-      create: {
+    // Check if rate exists
+    let exchangeRate = await this.exchangeRateRepository.findOne({
+      where: { fromCurrency, toCurrency },
+    });
+
+    if (exchangeRate) {
+      await this.exchangeRateRepository.update(
+        { fromCurrency, toCurrency },
+        {
+          rate: rate,
+          provider: 'MANUAL',
+          updatedAt: new Date(),
+        }
+      );
+      return this.exchangeRateRepository.findOne({ where: { fromCurrency, toCurrency } });
+    } else {
+      exchangeRate = this.exchangeRateRepository.create({
         fromCurrency,
         toCurrency,
-        rate: new Decimal(rate),
-        buyRate: buyRate ? new Decimal(buyRate) : undefined,
-        sellRate: sellRate ? new Decimal(sellRate) : undefined,
-        source: 'MANUAL',
-      },
-    });
+        rate: rate,
+        provider: 'MANUAL',
+      });
+      return this.exchangeRateRepository.save(exchangeRate);
+    }
   }
 }

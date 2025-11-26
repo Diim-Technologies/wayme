@@ -1,28 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get('SMTP_HOST'),
-      port: parseInt(this.configService.get('SMTP_PORT', '587')),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: this.configService.get('SMTP_USER'),
-        pass: this.configService.get('SMTP_PASS'),
-      },
-    });
+    const apiKey = this.configService.get('SENDGRID_API_KEY');
+    if (!apiKey) {
+      this.logger.error('SENDGRID_API_KEY is not configured');
+      throw new Error('SendGrid API key is required');
+    }
+    sgMail.setApiKey(apiKey);
+    this.logger.log('SendGrid email service initialized');
   }
 
   async sendPasswordResetOTP(email: string, otp: string, firstName: string) {
-    const mailOptions = {
-      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+    const msg = {
       to: email,
+      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
       subject: 'Reset Your Wayame Password',
       html: `
         <!DOCTYPE html>
@@ -77,7 +74,7 @@ export class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      await sgMail.send(msg);
       this.logger.log(`Password reset OTP sent to ${email}`);
       return true;
     } catch (error) {
@@ -87,9 +84,9 @@ export class EmailService {
   }
 
   async sendPasswordChangeConfirmation(email: string, firstName: string) {
-    const mailOptions = {
-      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+    const msg = {
       to: email,
+      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
       subject: 'Password Changed Successfully - Wayame',
       html: `
         <!DOCTYPE html>
@@ -137,7 +134,7 @@ export class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      await sgMail.send(msg);
       this.logger.log(`Password change confirmation sent to ${email}`);
       return true;
     } catch (error) {
@@ -147,9 +144,9 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email: string, firstName: string) {
-    const mailOptions = {
-      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+    const msg = {
       to: email,
+      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
       subject: 'Welcome to Wayame - Your Nigerian Money Transfer Solution',
       html: `
         <!DOCTYPE html>
@@ -197,11 +194,178 @@ export class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      await sgMail.send(msg);
       this.logger.log(`Welcome email sent to ${email}`);
       return true;
     } catch (error) {
       this.logger.error(`Failed to send welcome email to ${email}:`, error);
+      return false;
+    }
+  }
+
+  async sendTransactionNotification(email: string, firstName: string, transactionDetails: {
+    type: 'sent' | 'received' | 'completed' | 'failed';
+    amount: string;
+    currency: string;
+    recipient?: string;
+    reference: string;
+  }) {
+    const { type, amount, currency, recipient, reference } = transactionDetails;
+    
+    const subjects = {
+      sent: 'Money Transfer Initiated - Wayame',
+      received: 'Money Transfer Received - Wayame',
+      completed: 'Money Transfer Completed - Wayame',
+      failed: 'Money Transfer Failed - Wayame'
+    };
+
+    const colors = {
+      sent: '#007bff',
+      received: '#28a745',
+      completed: '#28a745',
+      failed: '#dc3545'
+    };
+
+    const icons = {
+      sent: '📤',
+      received: '📥',
+      completed: '✅',
+      failed: '❌'
+    };
+
+    const msg = {
+      to: email,
+      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+      subject: subjects[type],
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Transaction ${type.charAt(0).toUpperCase() + type.slice(1)}</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: ${colors[type]}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">${icons[type]} Transfer ${type.charAt(0).toUpperCase() + type.slice(1)}</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <div style="background: white; border-radius: 8px; padding: 25px; margin: 25px 0;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Transaction Details</h3>
+              <p><strong>Amount:</strong> ${currency} ${amount}</p>
+              ${recipient ? `<p><strong>Recipient:</strong> ${recipient}</p>` : ''}
+              <p><strong>Reference:</strong> ${reference}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      await sgMail.send(msg);
+      this.logger.log(`Transaction notification (${type}) sent to ${email} via SendGrid`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send transaction notification to ${email}:`, error);
+      return false;
+    }
+  }
+
+  async sendKYCStatusUpdate(email: string, firstName: string, status: 'approved' | 'rejected', reason?: string) {
+    const isApproved = status === 'approved';
+    
+    const msg = {
+      to: email,
+      from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+      subject: `KYC Verification ${isApproved ? 'Approved' : 'Update Required'} - Wayame`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>KYC Status Update</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: ${isApproved ? '#28a745' : '#dc3545'}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">${isApproved ? '✅' : '📋'} KYC ${isApproved ? 'Approved' : 'Update Required'}</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            ${isApproved ? `
+              <p style="font-size: 16px; margin-bottom: 25px;">
+                Great news! Your KYC verification has been approved. You can now enjoy full access to all Wayame services.
+              </p>
+              
+              <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 20px; margin: 25px 0;">
+                <h3 style="color: #155724; margin: 0 0 10px 0;">🎉 You're All Set!</h3>
+                <p style="margin: 0; color: #155724;">
+                  You can now send money transfers without limits. Start sending money home to Nigeria today!
+                </p>
+              </div>
+            ` : `
+              <p style="font-size: 16px; margin-bottom: 25px;">
+                We need some additional information to complete your KYC verification.
+              </p>
+              
+              <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 20px; margin: 25px 0;">
+                <h3 style="color: #721c24; margin: 0 0 10px 0;">📋 Action Required</h3>
+                <p style="margin: 0; color: #721c24;">
+                  ${reason || 'Please review and update your verification documents.'}
+                </p>
+              </div>
+            `}
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    try {
+      await sgMail.send(msg);
+      this.logger.log(`KYC status update (${status}) sent to ${email} via SendGrid`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send KYC status update to ${email}:`, error);
+      return false;
+    }
+  }
+
+  async sendBulkEmail(emails: string[], templateData: any, templateId?: string) {
+    try {
+      const msg = {
+        to: emails,
+        from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
+        templateId: templateId,
+        dynamicTemplateData: templateData,
+      };
+
+      await sgMail.sendMultiple(msg);
+      this.logger.log(`Bulk email sent to ${emails.length} recipients via SendGrid`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send bulk email:`, error);
       return false;
     }
   }

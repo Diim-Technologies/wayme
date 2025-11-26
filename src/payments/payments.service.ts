@@ -1,5 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource, In } from 'typeorm';
+import { PaymentMethod, User, Transfer, Transaction } from '../entities';
+import { PaymentMethodType, TransferStatus } from '../enums/common.enum';
 import { ConfigService } from '@nestjs/config';
 import { PaystackService } from '../common/services/paystack.service';
 import { StripeService } from '../common/services/stripe.service';
@@ -7,22 +10,30 @@ import { StripeService } from '../common/services/stripe.service';
 @Injectable()
 export class PaymentsService {
   constructor(
-    private prisma: PrismaService,
+    @InjectRepository(PaymentMethod)
+    private paymentMethodRepository: Repository<PaymentMethod>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Transfer)
+    private transferRepository: Repository<Transfer>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    private dataSource: DataSource,
     private configService: ConfigService,
     private paystackService: PaystackService,
     private stripeService: StripeService,
   ) {}
 
   async getUserPaymentMethods(userId: string) {
-    return this.prisma.paymentMethod.findMany({
+    return this.paymentMethodRepository.find({
       where: {
         userId,
         isActive: true,
       },
-      orderBy: [
-        { isDefault: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      order: {
+        isDefault: 'DESC',
+        createdAt: 'DESC',
+      },
     });
   }
 
@@ -35,9 +46,9 @@ export class PaymentsService {
   }) {
     try {
       // Get user details
-      const user = await this.prisma.user.findUnique({
+      const user = await this.userRepository.findOne({
         where: { id: userId },
-        select: { id: true, email: true, firstName: true, lastName: true },
+        select: ['id', 'email', 'firstName', 'lastName'],
       });
 
       if (!user) {
@@ -63,33 +74,33 @@ export class PaymentsService {
       });
 
       // Save payment method to database
-      const paymentMethod = await this.prisma.paymentMethod.create({
-        data: {
-          userId,
-          type: 'CARD',
-          cardDetails: {
-            last4: stripePaymentMethod.card?.last4,
-            brand: stripePaymentMethod.card?.brand,
-            expiryMonth: stripePaymentMethod.card?.exp_month,
-            expiryYear: stripePaymentMethod.card?.exp_year,
-            holderName: cardData.holderName,
-            fingerprint: stripePaymentMethod.card?.fingerprint,
-            country: stripePaymentMethod.card?.country,
-          },
-          stripeId: stripePaymentMethod.id,
+      const paymentMethod = this.paymentMethodRepository.create({
+        userId,
+        type: PaymentMethodType.CARD,
+        cardDetails: {
+          last4: stripePaymentMethod.card?.last4,
+          brand: stripePaymentMethod.card?.brand,
+          expiryMonth: stripePaymentMethod.card?.exp_month,
+          expiryYear: stripePaymentMethod.card?.exp_year,
+          holderName: cardData.holderName,
+          fingerprint: stripePaymentMethod.card?.fingerprint,
+          country: stripePaymentMethod.card?.country,
         },
+        stripeId: stripePaymentMethod.id,
       });
 
+      const savedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
+
       // If this is the user's first payment method, make it default
-      const userPaymentMethodsCount = await this.prisma.paymentMethod.count({
+      const userPaymentMethodsCount = await this.paymentMethodRepository.count({
         where: { userId, isActive: true },
       });
 
       if (userPaymentMethodsCount === 1) {
-        await this.setDefaultPaymentMethod(userId, paymentMethod.id);
+        await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
       }
 
-      return paymentMethod;
+      return savedPaymentMethod;
     } catch (error) {
       if (error.type === 'StripeCardError') {
         throw new BadRequestException(error.message);
@@ -101,9 +112,9 @@ export class PaymentsService {
   async addCardPaymentMethodWithSetupIntent(userId: string) {
     try {
       // Get user details
-      const user = await this.prisma.user.findUnique({
+      const user = await this.userRepository.findOne({
         where: { id: userId },
-        select: { id: true, email: true, firstName: true, lastName: true },
+        select: ['id', 'email', 'firstName', 'lastName'],
       });
 
       if (!user) {
@@ -140,32 +151,32 @@ export class PaymentsService {
         );
 
         // Save payment method to database
-        const dbPaymentMethod = await this.prisma.paymentMethod.create({
-          data: {
-            userId,
-            type: 'CARD',
-            cardDetails: {
-              last4: paymentMethod.card?.last4,
-              brand: paymentMethod.card?.brand,
-              expiryMonth: paymentMethod.card?.exp_month,
-              expiryYear: paymentMethod.card?.exp_year,
-              fingerprint: paymentMethod.card?.fingerprint,
-              country: paymentMethod.card?.country,
-            },
-            stripeId: paymentMethod.id,
+        const dbPaymentMethod = this.paymentMethodRepository.create({
+          userId,
+          type: PaymentMethodType.CARD,
+          cardDetails: {
+            last4: paymentMethod.card?.last4,
+            brand: paymentMethod.card?.brand,
+            expiryMonth: paymentMethod.card?.exp_month,
+            expiryYear: paymentMethod.card?.exp_year,
+            fingerprint: paymentMethod.card?.fingerprint,
+            country: paymentMethod.card?.country,
           },
+          stripeId: paymentMethod.id,
         });
 
+        const savedPaymentMethod = await this.paymentMethodRepository.save(dbPaymentMethod);
+
         // If this is the user's first payment method, make it default
-        const userPaymentMethodsCount = await this.prisma.paymentMethod.count({
+        const userPaymentMethodsCount = await this.paymentMethodRepository.count({
           where: { userId, isActive: true },
         });
 
         if (userPaymentMethodsCount === 1) {
-          await this.setDefaultPaymentMethod(userId, dbPaymentMethod.id);
+          await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
         }
 
-        return dbPaymentMethod;
+        return savedPaymentMethod;
       } else {
         throw new BadRequestException('Setup intent not completed successfully');
       }
@@ -183,31 +194,31 @@ export class PaymentsService {
       );
 
       // Use verified account name from Paystack
-      const paymentMethod = await this.prisma.paymentMethod.create({
-        data: {
-          userId,
-          type: 'BANK_TRANSFER',
-          bankDetails: {
-            accountNumber: verification.accountNumber,
-            accountName: verification.accountName, // Use Paystack verified name
-            bankName: bankData.bankName,
-            bankCode: bankData.bankCode,
-            isVerified: true,
-            verifiedAt: new Date().toISOString(),
-          },
+      const paymentMethod = this.paymentMethodRepository.create({
+        userId,
+        type: PaymentMethodType.BANK_TRANSFER,
+        bankDetails: {
+          accountNumber: verification.accountNumber,
+          accountName: verification.accountName, // Use Paystack verified name
+          bankName: bankData.bankName,
+          bankCode: bankData.bankCode,
+          isVerified: true,
+          verifiedAt: new Date().toISOString(),
         },
       });
 
+      const savedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
+
       // If this is the user's first payment method, make it default
-      const userPaymentMethodsCount = await this.prisma.paymentMethod.count({
+      const userPaymentMethodsCount = await this.paymentMethodRepository.count({
         where: { userId, isActive: true },
       });
 
       if (userPaymentMethodsCount === 1) {
-        await this.setDefaultPaymentMethod(userId, paymentMethod.id);
+        await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
       }
 
-      return paymentMethod;
+      return savedPaymentMethod;
     } catch (error) {
       // Re-throw Paystack validation errors
       if (error.status && error.message) {
@@ -227,9 +238,9 @@ export class PaymentsService {
   ) {
     try {
       // Get user details
-      const user = await this.prisma.user.findUnique({
+      const user = await this.userRepository.findOne({
         where: { id: userId },
-        select: { id: true, email: true, firstName: true, lastName: true },
+        select: ['id', 'email', 'firstName', 'lastName'],
       });
 
       if (!user) {
@@ -326,7 +337,7 @@ export class PaymentsService {
 
   async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
     // Verify the payment method belongs to the user
-    const paymentMethod = await this.prisma.paymentMethod.findFirst({
+    const paymentMethod = await this.paymentMethodRepository.findOne({
       where: {
         id: paymentMethodId,
         userId,
@@ -338,24 +349,22 @@ export class PaymentsService {
       throw new NotFoundException('Payment method not found');
     }
 
-    // Remove default from all other payment methods
-    await this.prisma.paymentMethod.updateMany({
-      where: {
+    await this.dataSource.transaction(async (manager) => {
+      // Remove default from all other payment methods
+      await manager.update(PaymentMethod, {
         userId,
         isActive: true,
-      },
-      data: { isDefault: false },
+      }, { isDefault: false });
+
+      // Set the new default
+      await manager.update(PaymentMethod, { id: paymentMethodId }, { isDefault: true });
     });
 
-    // Set the new default
-    return this.prisma.paymentMethod.update({
-      where: { id: paymentMethodId },
-      data: { isDefault: true },
-    });
+    return this.paymentMethodRepository.findOne({ where: { id: paymentMethodId } });
   }
 
   async removePaymentMethod(userId: string, paymentMethodId: string) {
-    const paymentMethod = await this.prisma.paymentMethod.findFirst({
+    const paymentMethod = await this.paymentMethodRepository.findOne({
       where: {
         id: paymentMethodId,
         userId,
@@ -368,10 +377,10 @@ export class PaymentsService {
     }
 
     // Check if there are pending transfers using this payment method
-    const pendingTransfers = await this.prisma.transfer.count({
+    const pendingTransfers = await this.transferRepository.count({
       where: {
         paymentMethodId,
-        status: { in: ['PENDING', 'PROCESSING'] },
+        status: In([TransferStatus.PENDING, TransferStatus.PROCESSING]),
       },
     });
 
@@ -382,7 +391,7 @@ export class PaymentsService {
     }
 
     // Detach from Stripe if it's a card
-    if (paymentMethod.type === 'CARD' && paymentMethod.stripeId) {
+    if (paymentMethod.type === PaymentMethodType.CARD && paymentMethod.stripeId) {
       try {
         await this.stripeService.detachPaymentMethod(paymentMethod.stripeId);
       } catch (error) {
@@ -392,20 +401,20 @@ export class PaymentsService {
     }
 
     // Soft delete the payment method
-    const updatedPaymentMethod = await this.prisma.paymentMethod.update({
-      where: { id: paymentMethodId },
-      data: { isActive: false },
+    const updatedPaymentMethod = await this.paymentMethodRepository.save({
+      ...paymentMethod,
+      isActive: false,
     });
 
     // If this was the default payment method, set another one as default
     if (paymentMethod.isDefault) {
-      const nextPaymentMethod = await this.prisma.paymentMethod.findFirst({
+      const nextPaymentMethod = await this.paymentMethodRepository.findOne({
         where: {
           userId,
           isActive: true,
-          id: { not: paymentMethodId },
+          id: paymentMethodId, // Exclude current one
         },
-        orderBy: { createdAt: 'desc' },
+        order: { createdAt: 'DESC' },
       });
 
       if (nextPaymentMethod) {

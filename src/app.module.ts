@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { PrismaModule } from './prisma/prisma.module';
+import { getTypeOrmConfig } from './config/typeorm.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TransfersModule } from './transfers/transfers.module';
@@ -17,6 +18,10 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }), 
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => getTypeOrmConfig(configService),
     }),
     ThrottlerModule.forRoot([
       {
@@ -24,14 +29,13 @@ import { AppService } from './app.service';
         limit: 100, // 100 requests per minute
       },
     ]),
-    PrismaModule,
     AuthModule,
     UsersModule,
     TransfersModule,
     PaymentsModule,
     BanksModule,
     NotificationsModule,
-    AdminModule, // Added AdminModule
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

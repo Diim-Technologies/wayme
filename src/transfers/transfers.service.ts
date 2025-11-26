@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Decimal } from 'decimal.js';
+import { Transfer, Transaction, PaymentMethod, Bank, User } from '../entities';
+import { TransferStatus, TransactionType, TransactionStatus, PaymentMethodType } from '../enums/common.enum';
 import { CreateTransferDto, TransferQuoteDto } from './dto/transfers.dto';
-import { Decimal } from '@prisma/client/runtime/library';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
 import { StripeService } from '../common/services/stripe.service';
@@ -9,7 +12,17 @@ import { StripeService } from '../common/services/stripe.service';
 @Injectable()
 export class TransfersService {
   constructor(
-    private prisma: PrismaService,
+    @InjectRepository(Transfer)
+    private transferRepository: Repository<Transfer>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(PaymentMethod)
+    private paymentMethodRepository: Repository<PaymentMethod>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Bank)
+    private bankRepository: Repository<Bank>,
+    private dataSource: DataSource,
     private currencyService: CurrencyService,
     private feeService: FeeService,
     private stripeService: StripeService,
@@ -30,7 +43,7 @@ export class TransfersService {
     } = createTransferDto;
 
     // Verify payment method belongs to user
-    const paymentMethod = await this.prisma.paymentMethod.findFirst({
+    const paymentMethod = await this.paymentMethodRepository.findOne({
       where: {
         id: paymentMethodId,
         userId,
@@ -48,14 +61,15 @@ export class TransfersService {
     // Generate unique reference
     const reference = this.generateReference();
 
-    // Create transfer
-    const transfer = await this.prisma.transfer.create({
-      data: {
+    // Create transfer with relations
+    const transfer = await this.dataSource.transaction(async (manager) => {
+      // Create transfer
+      const newTransfer = manager.create(Transfer, {
         senderId: userId,
         receiverId,
-        amount: new Decimal(amount / 100), // Convert from kobo to naira
-        fee: quote.fee,
-        exchangeRate: quote.exchangeRate,
+        amount: amount / 100, // Convert from kobo to naira
+        fee: parseFloat(quote.fee.toString()),
+        exchangeRate: parseFloat(quote.exchangeRate.toString()),
         sourceCurrency: 'NGN',
         targetCurrency,
         purpose,
@@ -66,36 +80,36 @@ export class TransfersService {
         recipientName,
         recipientPhone,
         notes,
-      },
-      include: {
-        sender: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        receiver: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        paymentMethod: true,
-        recipientBank: true,
-      },
-    });
+      });
 
-    // Create initial transaction record
-    await this.prisma.transaction.create({
-      data: {
-        transferId: transfer.id,
-        type: 'DEBIT',
-        amount: new Decimal((amount + quote.fee.toNumber() * 100) / 100),
+      const savedTransfer = await manager.save(Transfer, newTransfer);
+
+      // Create initial transaction record
+      const transaction = manager.create(Transaction, {
+        transferId: savedTransfer.id,
+        type: TransactionType.DEBIT,
+        amount: (amount + parseFloat(quote.fee.toString()) * 100) / 100,
         currency: 'NGN',
         reference: this.generateReference(),
-      },
+      });
+
+      await manager.save(Transaction, transaction);
+
+      return savedTransfer;
+    });
+
+    // Get transfer with relations
+    const transferWithRelations = await this.transferRepository.findOne({
+      where: { id: transfer.id },
+      relations: ['sender', 'receiver', 'paymentMethod', 'recipientBank'],
     });
 
     // If payment method is a card, create Stripe payment intent
-    if (paymentMethod.type === 'CARD' && paymentMethod.stripeId) {
+    if (paymentMethod.type === PaymentMethodType.CARD && paymentMethod.stripeId) {
       try {
-        const user = await this.prisma.user.findUnique({
+        const user = await this.userRepository.findOne({
           where: { id: userId },
-          select: { email: true, firstName: true, lastName: true },
+          select: ['email', 'firstName', 'lastName'],
         });
 
         const customer = await this.stripeService.getOrCreateCustomer(
@@ -104,7 +118,7 @@ export class TransfersService {
           `${user.firstName} ${user.lastName}`,
         );
 
-        const totalAmount = amount + (quote.fee.toNumber() * 100); // Total in kobo
+        const totalAmount = amount + (parseFloat(quote.fee.toString()) * 100); // Total in kobo
         
         const paymentIntent = await this.stripeService.createPaymentIntent(
           totalAmount / 100, // Convert to naira for Stripe
@@ -120,13 +134,13 @@ export class TransfersService {
         );
 
         // Update transfer with payment intent information
-        await this.prisma.transfer.update({
-          where: { id: transfer.id },
-          data: { status: 'PROCESSING' },
-        });
+        await this.transferRepository.update(
+          { id: transfer.id },
+          { status: TransferStatus.PROCESSING }
+        );
 
         return {
-          ...transfer,
+          ...transferWithRelations,
           paymentIntent: {
             id: paymentIntent.id,
             clientSecret: paymentIntent.client_secret,
@@ -135,24 +149,24 @@ export class TransfersService {
         };
       } catch (error) {
         // If Stripe payment creation fails, mark transfer as failed
-        await this.prisma.transfer.update({
-          where: { id: transfer.id },
-          data: { status: 'FAILED' },
-        });
+        await this.transferRepository.update(
+          { id: transfer.id },
+          { status: TransferStatus.FAILED }
+        );
 
-        await this.prisma.transaction.updateMany({
-          where: { transferId: transfer.id },
-          data: { 
-            status: 'FAILED',
+        await this.transactionRepository.update(
+          { transferId: transfer.id },
+          { 
+            status: TransactionStatus.FAILED,
             failureReason: 'Failed to create payment intent',
-          },
-        });
+          }
+        );
 
         throw new BadRequestException('Failed to process payment. Please try again.');
       }
     }
 
-    return transfer;
+    return transferWithRelations;
   }
 
   async createTransferWithPaymentIntent(userId: string, createTransferDto: CreateTransferDto) {
@@ -165,14 +179,14 @@ export class TransfersService {
     }
 
     // Otherwise, create payment intent separately for bank transfers or other methods
-    const paymentMethod = await this.prisma.paymentMethod.findFirst({
+    const paymentMethod = await this.paymentMethodRepository.findOne({
       where: { id: createTransferDto.paymentMethodId, userId },
     });
 
-    if (paymentMethod?.type === 'CARD' && paymentMethod.stripeId) {
-      const user = await this.prisma.user.findUnique({
+    if (paymentMethod?.type === PaymentMethodType.CARD && paymentMethod.stripeId) {
+      const user = await this.userRepository.findOne({
         where: { id: userId },
-        select: { email: true, firstName: true, lastName: true },
+        select: ['email', 'firstName', 'lastName'],
       });
 
       const customer = await this.stripeService.getOrCreateCustomer(
@@ -188,7 +202,7 @@ export class TransfersService {
         paymentMethod.type,
       );
 
-      const totalAmount = createTransferDto.amount + (quote.fee.toNumber() * 100);
+      const totalAmount = createTransferDto.amount + (parseFloat(quote.fee.toString()) * 100);
 
       const paymentIntent = await this.stripeService.createPaymentIntent(
         totalAmount / 100,
@@ -217,23 +231,24 @@ export class TransfersService {
   }
 
   async getTransferById(id: string, userId: string) {
-    const transfer = await this.prisma.transfer.findFirst({
-      where: {
-        id,
-        OR: [{ senderId: userId }, { receiverId: userId }],
-      },
-      include: {
-        sender: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        receiver: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        paymentMethod: true,
-        recipientBank: true,
-        transactions: true,
-      },
-    });
+    const transfer = await this.transferRepository
+      .createQueryBuilder('transfer')
+      .leftJoinAndSelect('transfer.sender', 'sender')
+      .leftJoinAndSelect('transfer.receiver', 'receiver')
+      .leftJoinAndSelect('transfer.paymentMethod', 'paymentMethod')
+      .leftJoinAndSelect('transfer.recipientBank', 'recipientBank')
+      .leftJoinAndSelect('transfer.transactions', 'transactions')
+      .where('transfer.id = :id', { id })
+      .andWhere('(transfer.senderId = :userId OR transfer.receiverId = :userId)', { userId })
+      .select([
+        'transfer',
+        'sender.firstName', 'sender.lastName', 'sender.email',
+        'receiver.firstName', 'receiver.lastName', 'receiver.email',
+        'paymentMethod',
+        'recipientBank',
+        'transactions'
+      ])
+      .getOne();
 
     if (!transfer) {
       throw new NotFoundException('Transfer not found');
@@ -244,33 +259,28 @@ export class TransfersService {
 
   async getUserTransfers(userId: string, page = 1, limit = 10, status?: string) {
     const skip = (page - 1) * limit;
-    const where: any = {
-      OR: [{ senderId: userId }, { receiverId: userId }],
-    };
+    
+    let query = this.transferRepository
+      .createQueryBuilder('transfer')
+      .leftJoinAndSelect('transfer.sender', 'sender')
+      .leftJoinAndSelect('transfer.receiver', 'receiver')
+      .leftJoinAndSelect('transfer.recipientBank', 'recipientBank')
+      .where('(transfer.senderId = :userId OR transfer.receiverId = :userId)', { userId })
+      .select([
+        'transfer',
+        'sender.firstName', 'sender.lastName', 'sender.email',
+        'receiver.firstName', 'receiver.lastName', 'receiver.email',
+        'recipientBank'
+      ])
+      .orderBy('transfer.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
 
-    // Only add status filter if provided
     if (status) {
-      where.status = status;
+      query = query.andWhere('transfer.status = :status', { status });
     }
 
-    const [transfers, total] = await Promise.all([
-      this.prisma.transfer.findMany({
-        where,
-        include: {
-          sender: {
-            select: { firstName: true, lastName: true, email: true },
-          },
-          receiver: {
-            select: { firstName: true, lastName: true, email: true },
-          },
-          recipientBank: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.transfer.count({ where }),
-    ]);
+    const [transfers, total] = await query.getManyAndCount();
 
     return {
       transfers,
@@ -284,28 +294,27 @@ export class TransfersService {
   }
 
   async getQuote(quoteDto: TransferQuoteDto) {
-    const { amount, sourceCurrency = 'NGN', targetCurrency = 'NGN', paymentMethodType = 'BANK_TRANSFER' } = quoteDto;
+    const { amount, sourceCurrency = 'NGN', targetCurrency = 'NGN', paymentMethodType = PaymentMethodType.BANK_TRANSFER } = quoteDto;
     return this.calculateQuote(amount, sourceCurrency, targetCurrency, paymentMethodType);
   }
 
   async cancelTransfer(id: string, userId: string) {
-    const transfer = await this.prisma.transfer.findFirst({
-      where: {
-        id,
-        senderId: userId,
-        status: { in: ['PENDING', 'PROCESSING'] },
-      },
-      include: {
-        transactions: true,
-      },
-    });
+    const transfer = await this.transferRepository
+      .createQueryBuilder('transfer')
+      .leftJoinAndSelect('transfer.transactions', 'transactions')
+      .where('transfer.id = :id', { id })
+      .andWhere('transfer.senderId = :userId', { userId })
+      .andWhere('transfer.status IN (:...statuses)', { 
+        statuses: [TransferStatus.PENDING, TransferStatus.PROCESSING] 
+      })
+      .getOne();
 
     if (!transfer) {
       throw new NotFoundException('Transfer not found or cannot be cancelled');
     }
 
     // If there's a Stripe payment intent, try to cancel it
-    const stripeTransaction = transfer.transactions.find(
+    const stripeTransaction = transfer.transactions?.find(
       t => t.gatewayRef && t.gatewayRef.startsWith('pi_')
     );
 
@@ -318,19 +327,25 @@ export class TransfersService {
       }
     }
 
-    return this.prisma.transfer.update({
+    await this.transferRepository.update(
+      { id },
+      { status: TransferStatus.CANCELLED }
+    );
+
+    return this.transferRepository.findOne({
       where: { id },
-      data: { status: 'CANCELLED' },
-      include: {
+      relations: ['sender', 'recipientBank'],
+      select: {
         sender: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        recipientBank: true,
-      },
+          firstName: true,
+          lastName: true,
+          email: true,
+        }
+      }
     });
   }
 
-  private async calculateQuote(amount: number, sourceCurrency: string, targetCurrency: string, paymentMethodType: string = 'BANK_TRANSFER') {
+  private async calculateQuote(amount: number, sourceCurrency: string, targetCurrency: string, paymentMethodType: string = PaymentMethodType.BANK_TRANSFER) {
     // Convert amount from kobo to naira for calculation
     const amountInNaira = new Decimal(amount / 100);
     

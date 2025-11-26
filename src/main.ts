@@ -40,39 +40,10 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Wayame API')
     .setDescription(`
-      Wayame is a comprehensive financial services API built with NestJS that provides secure payment processing, 
-      money transfers, and user management capabilities. The API integrates with multiple payment providers 
-      including Stripe and Paystack to offer seamless financial transactions.
-      
-      ## Features
-      - 🔐 JWT Authentication & Authorization
-      - 💳 Payment Processing (Stripe & Paystack)
-      - 💸 Money Transfers
-      - 🏦 Bank Account Management
-      - 📧 Email Notifications & OTP Verification
-      - 👤 User Profile Management
-      - 🔔 Real-time Notifications
-      - 👨‍💼 Admin Dashboard & Analytics
-      
-      ## Authentication
-      Most endpoints require authentication. To authenticate:
-      1. Register or login to receive a JWT token
-      2. Click the 'Authorize' button below
-      3. Enter: Bearer <your-jwt-token>
-      
-      ## Rate Limiting
-      - 100 requests per minute per IP address
-      - Rate limit headers included in responses
-      
-      ## Support
-      For API support, contact: support@wayame.com
+      Wayame  financial services API 
     `)
     .setVersion('1.0.0')
-    .setContact('Wayame API Support', 'https://wayame.com', 'support@wayame.com')
-    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
     .addServer('http://localhost:3000/', 'Development Server')
-    .addServer('https://api-staging.wayame.com/', 'Staging Server')
-    .addServer('https://api.wayame.com/', 'Production Server')
     .addBearerAuth(
       {
         type: 'http',
@@ -84,7 +55,7 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('Health', 'API health check endpoints')
+ 
     .addTag('Authentication', 'User authentication and authorization')
     .addTag('Users', 'User profile management')
     .addTag('Payments', 'Payment processing with Stripe and Paystack')

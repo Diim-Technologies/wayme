@@ -1,7 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../../entities';
 import Stripe from 'stripe';
-import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class StripeService {
@@ -10,7 +12,8 @@ export class StripeService {
 
   constructor(
     private configService: ConfigService,
-    private prisma: PrismaService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -43,9 +46,9 @@ export class StripeService {
 
   async getOrCreateCustomer(userId: string, email: string, name: string): Promise<Stripe.Customer> {
     // Check if user already has a Stripe customer ID
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: { id: true, email: true, firstName: true, lastName: true },
+      select: ['id', 'email', 'firstName', 'lastName'],
     });
 
     if (!user) {
