@@ -92,11 +92,11 @@ __decorate([
     __metadata("design:type", String)
 ], Transfer.prototype, "notes", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'datetime', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)
 ], Transfer.prototype, "processedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'datetime', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)
 ], Transfer.prototype, "completedAt", void 0);
 __decorate([

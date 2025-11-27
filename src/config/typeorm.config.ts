@@ -8,10 +8,10 @@ dotenv.config();
 const configService = new ConfigService();
 
 export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
-  type: 'mysql',
+  type: 'postgres',
   host: configService.get('DB_HOST') || 'localhost',
-  port: parseInt(configService.get('DB_PORT') || '3306'),
-  username: configService.get('DB_USERNAME') || 'root',
+  port: parseInt(configService.get('DB_PORT') || '5432'),
+  username: configService.get('DB_USERNAME') || 'postgres',
   password: configService.get('DB_PASSWORD') || '',
   database: configService.get('DB_NAME') || 'wayame',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
@@ -19,19 +19,20 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
   synchronize: false, // Disabled to prevent conflicts with existing schema
   logging: configService.get('NODE_ENV') === 'development',
   migrationsRun: false,
-  ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: { rejectUnauthorized: false }, // Enabled for Railway connection
 });
 
 // DataSource for migrations
 export default new DataSource({
-  type: 'mysql',
+  type: 'postgres',
   host: configService.get('DB_HOST') || 'localhost',
-  port: parseInt(configService.get('DB_PORT') || '3306'),
-  username: configService.get('DB_USERNAME') || 'root',
+  port: parseInt(configService.get('DB_PORT') || '5432'),
+  username: configService.get('DB_USERNAME') || 'postgres',
   password: configService.get('DB_PASSWORD') || '',
   database: configService.get('DB_NAME') || 'wayame',
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
   logging: true,
+  ssl: { rejectUnauthorized: false }, // Enabled for Railway connection
 });

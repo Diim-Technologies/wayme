@@ -18,7 +18,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-    }), 
+    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => getTypeOrmConfig(configService),
@@ -37,7 +37,7 @@ import { AppService } from './app.service';
     NotificationsModule,
     AdminModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController], 
   providers: [AppService],
 })
 export class AppModule {}

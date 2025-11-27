@@ -7,10 +7,10 @@ const dotenv = require("dotenv");
 dotenv.config();
 const configService = new config_1.ConfigService();
 const getTypeOrmConfig = (configService) => ({
-    type: 'mysql',
+    type: 'postgres',
     host: configService.get('DB_HOST') || 'localhost',
-    port: parseInt(configService.get('DB_PORT') || '3306'),
-    username: configService.get('DB_USERNAME') || 'root',
+    port: parseInt(configService.get('DB_PORT') || '5432'),
+    username: configService.get('DB_USERNAME') || 'postgres',
     password: configService.get('DB_PASSWORD') || '',
     database: configService.get('DB_NAME') || 'wayame',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
@@ -18,19 +18,20 @@ const getTypeOrmConfig = (configService) => ({
     synchronize: false,
     logging: configService.get('NODE_ENV') === 'development',
     migrationsRun: false,
-    ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
 });
 exports.getTypeOrmConfig = getTypeOrmConfig;
 exports.default = new typeorm_1.DataSource({
-    type: 'mysql',
+    type: 'postgres',
     host: configService.get('DB_HOST') || 'localhost',
-    port: parseInt(configService.get('DB_PORT') || '3306'),
-    username: configService.get('DB_USERNAME') || 'root',
+    port: parseInt(configService.get('DB_PORT') || '5432'),
+    username: configService.get('DB_USERNAME') || 'postgres',
     password: configService.get('DB_PASSWORD') || '',
     database: configService.get('DB_NAME') || 'wayame',
     entities: ['src/**/*.entity.ts'],
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
     logging: true,
+    ssl: { rejectUnauthorized: false },
 });
 //# sourceMappingURL=typeorm.config.js.map

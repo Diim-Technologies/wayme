@@ -49,12 +49,12 @@ export class Transaction {
   gatewayData: any;
 
   @Column('text', { nullable: true })
-  gatewayResponse: string; // Added missing property
+  gatewayResponse: string;
 
   @Column({ nullable: true })
   failureReason: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   processedAt: Date;
 
   @CreateDateColumn()

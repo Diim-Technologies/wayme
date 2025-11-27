@@ -28,7 +28,7 @@ export class OTP {
   })
   type: OTPType;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   expiresAt: Date;
 
   @Column({ default: false })

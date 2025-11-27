@@ -72,10 +72,10 @@ export class Transfer {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   processedAt: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   completedAt: Date;
 
   @CreateDateColumn()
