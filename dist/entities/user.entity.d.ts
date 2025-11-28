@@ -1,6 +1,7 @@
 import { UserRole, KycStatus } from '../enums/user.enum';
 export declare class User {
     id: string;
+    generateId(): void;
     email: string;
     firstName: string;
     lastName: string;

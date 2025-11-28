@@ -7,6 +7,7 @@ class AddIdToUsersTable1764189037149 {
     }
     async up(queryRunner) {
         console.log('🔧 Starting migration: Adding id column and primary key to users table...');
+        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
         const usersTableExists = await queryRunner.hasTable("users");
         if (!usersTableExists) {
             console.log('❌ Users table does not exist. Creating it...');
@@ -18,22 +19,13 @@ class AddIdToUsersTable1764189037149 {
         if (!idColumn) {
             console.log('🆔 Adding id column to users table...');
             await queryRunner.query(`
-                ALTER TABLE \`users\` 
-                ADD COLUMN \`id\` varchar(36) NULL FIRST
-            `);
-            await queryRunner.query(`
-                UPDATE \`users\` 
-                SET \`id\` = UUID() 
-                WHERE \`id\` IS NULL
-            `);
-            await queryRunner.query(`
-                ALTER TABLE \`users\` 
-                MODIFY COLUMN \`id\` varchar(36) NOT NULL
+                ALTER TABLE "users" 
+                ADD COLUMN "id" uuid DEFAULT uuid_generate_v4() NOT NULL
             `);
             try {
                 await queryRunner.query(`
-                    ALTER TABLE \`users\` 
-                    ADD PRIMARY KEY (\`id\`)
+                    ALTER TABLE "users" 
+                    ADD PRIMARY KEY ("id")
                 `);
                 console.log('✅ Primary key added to users table');
             }
@@ -43,11 +35,21 @@ class AddIdToUsersTable1764189037149 {
         }
         else {
             console.log('✅ Id column already exists in users table');
+            try {
+                await queryRunner.query(`
+                    ALTER TABLE "users" 
+                    ALTER COLUMN "id" SET DEFAULT uuid_generate_v4()
+                `);
+                console.log('✅ Default value set for id column');
+            }
+            catch (error) {
+                console.log('⚠️ Could not set default value:', error.message);
+            }
             if (!idColumn.isPrimary) {
                 try {
                     await queryRunner.query(`
-                        ALTER TABLE \`users\` 
-                        ADD PRIMARY KEY (\`id\`)
+                        ALTER TABLE "users" 
+                        ADD PRIMARY KEY ("id")
                     `);
                     console.log('✅ Primary key constraint added to existing id column');
                 }
@@ -55,50 +57,41 @@ class AddIdToUsersTable1764189037149 {
                     console.log('⚠️ Could not add primary key:', error.message);
                 }
             }
-            else {
-                console.log('✅ Id column is already set as primary key');
-            }
         }
         await this.ensureRequiredColumnsExist(queryRunner);
         console.log('🎉 Migration completed successfully!');
     }
     async down(queryRunner) {
-        console.log('🔄 Rolling back: Removing id column and primary key from users table...');
-        const usersTableExists = await queryRunner.hasTable("users");
-        if (usersTableExists) {
-            try {
-                await queryRunner.query(`ALTER TABLE \`users\` DROP PRIMARY KEY`);
-            }
-            catch (error) {
-                console.log('⚠️ Could not drop primary key:', error.message);
-            }
-            try {
-                await queryRunner.query(`ALTER TABLE \`users\` DROP COLUMN \`id\``);
-                console.log('✅ Id column removed from users table');
-            }
-            catch (error) {
-                console.log('⚠️ Could not drop id column:', error.message);
-            }
-        }
+        console.log('🔄 Rolling back...');
     }
     async createUsersTable(queryRunner) {
+        await queryRunner.query(`DO $$ BEGIN
+            CREATE TYPE "user_role_enum" AS ENUM ('USER', 'ADMIN', 'SUPER_ADMIN');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;`);
+        await queryRunner.query(`DO $$ BEGIN
+            CREATE TYPE "user_kycstatus_enum" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;`);
         await queryRunner.query(`
-            CREATE TABLE \`users\` (
-                \`id\` varchar(36) NOT NULL,
-                \`email\` varchar(255) NOT NULL,
-                \`firstName\` varchar(100) NOT NULL,
-                \`lastName\` varchar(100) NOT NULL,
-                \`phoneNumber\` varchar(20) NULL,
-                \`password\` varchar(255) NOT NULL,
-                \`role\` enum('USER','ADMIN','SUPER_ADMIN') NOT NULL DEFAULT 'USER',
-                \`isVerified\` tinyint NOT NULL DEFAULT 0,
-                \`kycStatus\` enum('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
-                \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-                UNIQUE INDEX \`IDX_users_email\` (\`email\`),
-                UNIQUE INDEX \`IDX_users_phoneNumber\` (\`phoneNumber\`),
-                PRIMARY KEY (\`id\`)
-            ) ENGINE=InnoDB
+            CREATE TABLE "users" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "email" character varying(255) NOT NULL,
+                "firstName" character varying(100) NOT NULL,
+                "lastName" character varying(100) NOT NULL,
+                "phoneNumber" character varying(20),
+                "password" character varying(255) NOT NULL,
+                "role" "user_role_enum" NOT NULL DEFAULT 'USER',
+                "isVerified" boolean NOT NULL DEFAULT false,
+                "kycStatus" "user_kycstatus_enum" NOT NULL DEFAULT 'PENDING',
+                "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
+                "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+                CONSTRAINT "UQ_users_email" UNIQUE ("email"),
+                CONSTRAINT "UQ_users_phoneNumber" UNIQUE ("phoneNumber"),
+                CONSTRAINT "PK_users" PRIMARY KEY ("id")
+            )
         `);
         console.log('✅ Users table created with proper structure');
     }
@@ -111,44 +104,17 @@ class AddIdToUsersTable1764189037149 {
             { name: 'lastName', type: 'varchar(100)', nullable: false },
             { name: 'phoneNumber', type: 'varchar(20)', nullable: true },
             { name: 'password', type: 'varchar(255)', nullable: false },
-            { name: 'role', type: "enum('USER','ADMIN','SUPER_ADMIN')", nullable: false, default: "'USER'" },
-            { name: 'isVerified', type: 'tinyint', nullable: false, default: '0' },
-            { name: 'kycStatus', type: "enum('PENDING','APPROVED','REJECTED')", nullable: false, default: "'PENDING'" },
-            { name: 'createdAt', type: 'datetime(6)', nullable: false, default: 'CURRENT_TIMESTAMP(6)' },
-            { name: 'updatedAt', type: 'datetime(6)', nullable: false, default: 'CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)' }
         ];
         for (const reqCol of requiredColumns) {
             const existingCol = columns.find(col => col.name === reqCol.name);
             if (!existingCol) {
                 console.log(`📝 Adding missing column: ${reqCol.name}`);
-                try {
-                    const nullableStr = reqCol.nullable ? 'NULL' : 'NOT NULL';
-                    const defaultStr = reqCol.default ? `DEFAULT ${reqCol.default}` : '';
-                    await queryRunner.query(`
-                        ALTER TABLE \`users\` 
-                        ADD COLUMN \`${reqCol.name}\` ${reqCol.type} ${nullableStr} ${defaultStr}
-                    `);
-                }
-                catch (error) {
-                    console.log(`⚠️ Could not add column ${reqCol.name}:`, error.message);
-                }
+                const nullableStr = reqCol.nullable ? 'NULL' : 'NOT NULL';
+                await queryRunner.query(`
+                    ALTER TABLE "users" 
+                    ADD COLUMN "${reqCol.name}" ${reqCol.type} ${nullableStr}
+                `);
             }
-        }
-        try {
-            await queryRunner.query(`
-                ALTER TABLE \`users\` 
-                ADD UNIQUE INDEX \`IDX_users_email\` (\`email\`)
-            `);
-        }
-        catch (error) {
-        }
-        try {
-            await queryRunner.query(`
-                ALTER TABLE \`users\` 
-                ADD UNIQUE INDEX \`IDX_users_phoneNumber\` (\`phoneNumber\`)
-            `);
-        }
-        catch (error) {
         }
     }
 }

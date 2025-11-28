@@ -12,13 +12,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
 const user_enum_1 = require("../enums/user.enum");
+const crypto_1 = require("crypto");
 let User = class User {
+    generateId() {
+        if (!this.id) {
+            this.id = (0, crypto_1.randomUUID)();
+        }
+    }
 };
 exports.User = User;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
 ], User.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.BeforeInsert)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], User.prototype, "generateId", null);
 __decorate([
     (0, typeorm_1.Column)({ unique: true }),
     (0, typeorm_1.Index)(),

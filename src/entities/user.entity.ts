@@ -7,13 +7,22 @@ import {
   OneToMany,
   OneToOne,
   Index,
+  BeforeInsert,
 } from 'typeorm';
 import { UserRole, KycStatus } from '../enums/user.enum';
+import { randomUUID } from 'crypto';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      this.id = randomUUID();
+    }
+  }
 
   @Column({ unique: true })
   @Index()
