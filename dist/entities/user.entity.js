@@ -102,6 +102,10 @@ __decorate([
     __metadata("design:type", Array)
 ], User.prototype, "sentTransfers", void 0);
 __decorate([
+    (0, typeorm_1.OneToMany)('Beneficiary', 'user'),
+    __metadata("design:type", Array)
+], User.prototype, "beneficiaries", void 0);
+__decorate([
     (0, typeorm_1.OneToOne)('UserProfile', 'user'),
     __metadata("design:type", Object)
 ], User.prototype, "profile", void 0);

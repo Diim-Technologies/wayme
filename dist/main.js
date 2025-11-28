@@ -31,6 +31,7 @@ async function bootstrap() {
     `)
         .setVersion('1.0.0')
         .addServer('http://localhost:3000/', 'Development Server')
+        .addServer('https://backendapi1-production.up.railway.app', 'Production Server')
         .addBearerAuth({
         type: 'http',
         scheme: 'bearer',
@@ -44,6 +45,7 @@ async function bootstrap() {
         .addTag('Payments', 'Payment processing with Stripe and Paystack')
         .addTag('Transfers', 'Money transfer operations')
         .addTag('Banks', 'Bank account management')
+        .addTag('Beneficiaries', 'Saved beneficiary management')
         .addTag('Notifications', 'User notifications and alerts')
         .addTag('Admin', 'Administrative operations (Admin access required)')
         .build();

@@ -44,6 +44,7 @@ async function bootstrap() {
     `)
     .setVersion('1.0.0')
     .addServer('http://localhost:3000/', 'Development Server')
+    .addServer('https://backendapi1-production.up.railway.app', 'Production Server')
     .addBearerAuth(
       {
         type: 'http',
@@ -55,12 +56,13 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
- 
+
     .addTag('Authentication', 'User authentication and authorization')
     .addTag('Users', 'User profile management')
     .addTag('Payments', 'Payment processing with Stripe and Paystack')
     .addTag('Transfers', 'Money transfer operations')
     .addTag('Banks', 'Bank account management')
+    .addTag('Beneficiaries', 'Saved beneficiary management')
     .addTag('Notifications', 'User notifications and alerts')
     .addTag('Admin', 'Administrative operations (Admin access required)')
     .build();
@@ -93,7 +95,7 @@ async function bootstrap() {
 
   const port = configService.get('PORT') || 3000;
   await app.listen(port);
-  
+
   console.log(`🚀 Wayame API is running on: http://localhost:${port}`);
   console.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
   console.log(`🔧 Health check: http://localhost:${port}/api/v1/health`);

@@ -17,5 +17,6 @@ export declare class User {
     paymentMethods: any[];
     receivedTransfers: any[];
     sentTransfers: any[];
+    beneficiaries: any[];
     profile: any;
 }

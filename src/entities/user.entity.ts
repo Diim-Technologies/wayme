@@ -79,6 +79,9 @@ export class User {
   @OneToMany('Transfer', 'sender')
   sentTransfers: any[];
 
+  @OneToMany('Beneficiary', 'user')
+  beneficiaries: any[];
+
   @OneToOne('UserProfile', 'user')
   profile: any;
 }

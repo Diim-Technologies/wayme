@@ -13,25 +13,56 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const sgMail = require("@sendgrid/mail");
+const nodemailer = require("nodemailer");
 let EmailService = EmailService_1 = class EmailService {
     constructor(configService) {
         this.configService = configService;
         this.logger = new common_1.Logger(EmailService_1.name);
-        const apiKey = this.configService.get('SENDGRID_API_KEY');
-        if (!apiKey) {
-            this.logger.error('SENDGRID_API_KEY is not configured');
-            throw new Error('SendGrid API key is required');
+        this.initializeTransporter();
+    }
+    initializeTransporter() {
+        const host = this.configService.get('SMTP_HOST');
+        const port = this.configService.get('SMTP_PORT');
+        const user = this.configService.get('SMTP_USER');
+        const pass = this.configService.get('SMTP_PASS');
+        if (!host || !user || !pass) {
+            this.logger.warn('SMTP configuration is missing. Email service will not work.');
+            return;
         }
-        sgMail.setApiKey(apiKey);
-        this.logger.log('SendGrid email service initialized');
+        this.transporter = nodemailer.createTransport({
+            host,
+            port: parseInt(port) || 587,
+            secure: parseInt(port) === 465,
+            auth: {
+                user,
+                pass,
+            },
+        });
+        this.logger.log('Nodemailer transporter initialized');
+    }
+    async sendMail(to, subject, html) {
+        if (!this.transporter) {
+            this.logger.error('Email transporter not initialized. Cannot send email.');
+            return false;
+        }
+        const from = this.configService.get('FROM_EMAIL', 'noreply@wayame.com');
+        try {
+            await this.transporter.sendMail({
+                from,
+                to,
+                subject,
+                html,
+            });
+            return true;
+        }
+        catch (error) {
+            this.logger.error(`Failed to send email to ${to}:`, error);
+            return false;
+        }
     }
     async sendPasswordResetOTP(email, otp, firstName) {
-        const msg = {
-            to: email,
-            from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-            subject: 'Reset Your Wayame Password',
-            html: `
+        const subject = 'Reset Your Wayame Password';
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -80,24 +111,16 @@ let EmailService = EmailService_1 = class EmailService {
           </div>
         </body>
         </html>
-      `,
-        };
-        try {
-            await sgMail.send(msg);
+      `;
+        const success = await this.sendMail(email, subject, html);
+        if (success) {
             this.logger.log(`Password reset OTP sent to ${email}`);
-            return true;
         }
-        catch (error) {
-            this.logger.error(`Failed to send password reset OTP to ${email}:`, error);
-            return false;
-        }
+        return success;
     }
     async sendPasswordChangeConfirmation(email, firstName) {
-        const msg = {
-            to: email,
-            from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-            subject: 'Password Changed Successfully - Wayame',
-            html: `
+        const subject = 'Password Changed Successfully - Wayame';
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -139,24 +162,16 @@ let EmailService = EmailService_1 = class EmailService {
           </div>
         </body>
         </html>
-      `,
-        };
-        try {
-            await sgMail.send(msg);
+      `;
+        const success = await this.sendMail(email, subject, html);
+        if (success) {
             this.logger.log(`Password change confirmation sent to ${email}`);
-            return true;
         }
-        catch (error) {
-            this.logger.error(`Failed to send password change confirmation to ${email}:`, error);
-            return false;
-        }
+        return success;
     }
     async sendWelcomeEmail(email, firstName) {
-        const msg = {
-            to: email,
-            from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-            subject: 'Welcome to Wayame - Your Nigerian Money Transfer Solution',
-            html: `
+        const subject = 'Welcome to Wayame - Your Nigerian Money Transfer Solution';
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -198,17 +213,12 @@ let EmailService = EmailService_1 = class EmailService {
           </div>
         </body>
         </html>
-      `,
-        };
-        try {
-            await sgMail.send(msg);
+      `;
+        const success = await this.sendMail(email, subject, html);
+        if (success) {
             this.logger.log(`Welcome email sent to ${email}`);
-            return true;
         }
-        catch (error) {
-            this.logger.error(`Failed to send welcome email to ${email}:`, error);
-            return false;
-        }
+        return success;
     }
     async sendTransactionNotification(email, firstName, transactionDetails) {
         const { type, amount, currency, recipient, reference } = transactionDetails;
@@ -230,11 +240,8 @@ let EmailService = EmailService_1 = class EmailService {
             completed: '✅',
             failed: '❌'
         };
-        const msg = {
-            to: email,
-            from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-            subject: subjects[type],
-            html: `
+        const subject = subjects[type];
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -267,25 +274,17 @@ let EmailService = EmailService_1 = class EmailService {
           </div>
         </body>
         </html>
-      `,
-        };
-        try {
-            await sgMail.send(msg);
-            this.logger.log(`Transaction notification (${type}) sent to ${email} via SendGrid`);
-            return true;
+      `;
+        const success = await this.sendMail(email, subject, html);
+        if (success) {
+            this.logger.log(`Transaction notification (${type}) sent to ${email}`);
         }
-        catch (error) {
-            this.logger.error(`Failed to send transaction notification to ${email}:`, error);
-            return false;
-        }
+        return success;
     }
     async sendKYCStatusUpdate(email, firstName, status, reason) {
         const isApproved = status === 'approved';
-        const msg = {
-            to: email,
-            from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-            subject: `KYC Verification ${isApproved ? 'Approved' : 'Update Required'} - Wayame`,
-            html: `
+        const subject = `KYC Verification ${isApproved ? 'Approved' : 'Update Required'} - Wayame`;
+        const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -334,34 +333,22 @@ let EmailService = EmailService_1 = class EmailService {
           </div>
         </body>
         </html>
-      `,
-        };
-        try {
-            await sgMail.send(msg);
-            this.logger.log(`KYC status update (${status}) sent to ${email} via SendGrid`);
-            return true;
+      `;
+        const success = await this.sendMail(email, subject, html);
+        if (success) {
+            this.logger.log(`KYC status update (${status}) sent to ${email}`);
         }
-        catch (error) {
-            this.logger.error(`Failed to send KYC status update to ${email}:`, error);
-            return false;
-        }
+        return success;
     }
-    async sendBulkEmail(emails, templateData, templateId) {
-        try {
-            const msg = {
-                to: emails,
-                from: this.configService.get('FROM_EMAIL', 'noreply@wayame.com'),
-                templateId: templateId,
-                dynamicTemplateData: templateData,
-            };
-            await sgMail.sendMultiple(msg);
-            this.logger.log(`Bulk email sent to ${emails.length} recipients via SendGrid`);
-            return true;
+    async sendBulkEmail(emails, subject, html) {
+        let successCount = 0;
+        for (const email of emails) {
+            const success = await this.sendMail(email, subject, html);
+            if (success)
+                successCount++;
         }
-        catch (error) {
-            this.logger.error(`Failed to send bulk email:`, error);
-            return false;
-        }
+        this.logger.log(`Bulk email sent to ${successCount}/${emails.length} recipients`);
+        return successCount > 0;
     }
 };
 exports.EmailService = EmailService;

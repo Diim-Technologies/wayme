@@ -10,6 +10,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { BanksModule } from './banks/banks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { BeneficiariesModule } from './beneficiaries/beneficiaries.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -36,8 +37,9 @@ import { AppService } from './app.service';
     BanksModule,
     NotificationsModule,
     AdminModule,
+    BeneficiariesModule,
   ],
-  controllers: [AppController], 
+  controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
