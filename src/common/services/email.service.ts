@@ -22,17 +22,43 @@ export class EmailService {
       return;
     }
 
+    const portNumber = parseInt(port) || 587;
+    const isSecure = portNumber === 465;
+
     this.transporter = nodemailer.createTransport({
       host,
-      port: parseInt(port) || 587,
-      secure: parseInt(port) === 465, // true for 465, false for other ports
+      port: portNumber,
+      secure: isSecure, // true for 465, false for other ports
       auth: {
         user,
         pass,
       },
+      // Connection timeout settings
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000, // 10 seconds
+      socketTimeout: 10000, // 10 seconds
+      // Connection pooling
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      // TLS options
+      tls: {
+        rejectUnauthorized: false, // Accept self-signed certificates
+        minVersion: 'TLSv1.2',
+      },
+      // Enable debug if needed
+      debug: this.configService.get('NODE_ENV') === 'development',
+      logger: this.configService.get('NODE_ENV') === 'development',
     });
 
-    this.logger.log('Nodemailer transporter initialized');
+    // Verify connection configuration
+    this.transporter.verify((error, success) => {
+      if (error) {
+        this.logger.error('SMTP connection verification failed:', error);
+      } else {
+        this.logger.log('SMTP transporter initialized and verified successfully');
+      }
+    });
   }
 
   private async sendMail(to: string | string[], subject: string, html: string) {
