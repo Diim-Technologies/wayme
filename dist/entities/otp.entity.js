@@ -13,13 +13,25 @@ exports.OTP = void 0;
 const typeorm_1 = require("typeorm");
 const common_enum_1 = require("../enums/common.enum");
 const user_entity_1 = require("./user.entity");
+const crypto_1 = require("crypto");
 let OTP = class OTP {
+    generateId() {
+        if (!this.id) {
+            this.id = (0, crypto_1.randomUUID)();
+        }
+    }
 };
 exports.OTP = OTP;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
 ], OTP.prototype, "id", void 0);
+__decorate([
+    (0, typeorm_1.BeforeInsert)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], OTP.prototype, "generateId", null);
 __decorate([
     (0, typeorm_1.Column)(),
     (0, typeorm_1.Index)(),

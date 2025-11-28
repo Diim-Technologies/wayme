@@ -6,14 +6,23 @@ import {
   ManyToOne,
   JoinColumn,
   Index,
+  BeforeInsert,
 } from 'typeorm';
 import { OTPType } from '../enums/common.enum';
 import { User } from './user.entity';
+import { randomUUID } from 'crypto';
 
 @Entity('otps')
 export class OTP {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      this.id = randomUUID();
+    }
+  }
 
   @Column()
   @Index()
