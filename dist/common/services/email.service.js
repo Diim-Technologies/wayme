@@ -29,16 +29,37 @@ let EmailService = EmailService_1 = class EmailService {
             this.logger.warn('SMTP configuration is missing. Email service will not work.');
             return;
         }
+        const portNumber = parseInt(port) || 587;
+        const isSecure = portNumber === 465;
         this.transporter = nodemailer.createTransport({
             host,
-            port: parseInt(port) || 587,
-            secure: parseInt(port) === 465,
+            port: portNumber,
+            secure: isSecure,
             auth: {
                 user,
                 pass,
             },
+            connectionTimeout: 10000,
+            greetingTimeout: 10000,
+            socketTimeout: 10000,
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 100,
+            tls: {
+                rejectUnauthorized: false,
+                minVersion: 'TLSv1.2',
+            },
+            debug: this.configService.get('NODE_ENV') === 'development',
+            logger: this.configService.get('NODE_ENV') === 'development',
         });
-        this.logger.log('Nodemailer transporter initialized');
+        this.transporter.verify((error, success) => {
+            if (error) {
+                this.logger.error('SMTP connection verification failed:', error);
+            }
+            else {
+                this.logger.log('SMTP transporter initialized and verified successfully');
+            }
+        });
     }
     async sendMail(to, subject, html) {
         if (!this.transporter) {
