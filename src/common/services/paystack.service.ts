@@ -102,8 +102,7 @@ export class PaystackService {
         {
           params: {
             country: 'nigeria',
-            use_cursor: false,
-            perPage: 100,
+
           },
           headers: this.getHeaders(),
         }
