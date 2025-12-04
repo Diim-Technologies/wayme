@@ -39,7 +39,7 @@ export class PaystackService {
   private readonly secretKey: string;
 
   constructor(private configService: ConfigService) {
-    this.secretKey = this.configService.get<string>('pk_live_acad0c22c36817ccda993eebbb13c2bbd708bdab');
+    this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY');
 
     if (!this.secretKey) {
       throw new Error('PAYSTACK_SECRET_KEY is required');
