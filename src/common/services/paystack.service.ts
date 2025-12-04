@@ -39,8 +39,8 @@ export class PaystackService {
   private readonly secretKey: string;
 
   constructor(private configService: ConfigService) {
-    this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY');
-    
+    this.secretKey = this.configService.get<string>('pk_live_acad0c22c36817ccda993eebbb13c2bbd708bdab');
+
     if (!this.secretKey) {
       throw new Error('PAYSTACK_SECRET_KEY is required');
     }
@@ -126,7 +126,7 @@ export class PaystackService {
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       console.error('Paystack Bank List Error:', error.response?.data || error.message);
       throw new HttpException(
         'Bank list service temporarily unavailable',
