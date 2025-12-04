@@ -15,7 +15,7 @@ async function bootstrap() {
     app.use((0, helmet_1.default)());
     app.use(compression());
     app.enableCors({
-        origin: configService.get('FRONTEND_URL') || 'http://localhost:3000',
+        origin: [configService.get('FRONTEND_URL') || 'http://localhost:3000', 'http://localhost:5173', 'https://backendapi1-production.up.railway.app'],
         credentials: true,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({

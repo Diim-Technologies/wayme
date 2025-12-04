@@ -71,8 +71,6 @@ let PaystackService = class PaystackService {
             const response = await axios_1.default.get(`${this.baseUrl}/bank`, {
                 params: {
                     country: 'nigeria',
-                    use_cursor: false,
-                    perPage: 100,
                 },
                 headers: this.getHeaders(),
             });

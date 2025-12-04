@@ -113,7 +113,7 @@ export class PaystackService {
       }
 
       return response.data.data
-        .filter(bank => bank.active && bank.country === 'NG')
+        .filter(bank => bank.active && bank.country === 'Nigeria')
         .map(bank => ({
           id: bank.id,
           name: bank.name,
