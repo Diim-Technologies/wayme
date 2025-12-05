@@ -10,7 +10,7 @@ export class BanksService {
     @InjectRepository(Bank)
     private bankRepository: Repository<Bank>,
     private paystackService: PaystackService,
-  ) {}
+  ) { }
 
   async getAllBanks(country = 'NG') {
     return this.bankRepository.find({
@@ -38,7 +38,7 @@ export class BanksService {
     try {
       // Get bank details from local database
       const bank = await this.getBankByCode(bankCode);
-      
+
       // Verify account with Paystack
       const verification = await this.paystackService.verifyBankAccount(
         accountNumber,
@@ -57,7 +57,7 @@ export class BanksService {
       if (error.status && error.message) {
         throw error;
       }
-      
+
       // For unknown errors, throw a generic message
       throw new NotFoundException('Unable to verify account number at this time');
     }
@@ -66,9 +66,9 @@ export class BanksService {
   async syncBanksFromPaystack() {
     try {
       const paystackBanks = await this.paystackService.getBankList();
-      
+
       const syncedBanks = [];
-      
+
       for (const paystackBank of paystackBanks) {
         // Check if bank exists
         let bank = await this.bankRepository.findOne({
@@ -97,7 +97,7 @@ export class BanksService {
           });
           await this.bankRepository.save(bank);
         }
-        
+
         syncedBanks.push(bank);
       }
 
@@ -114,25 +114,25 @@ export class BanksService {
   async seedBanks() {
     // Popular Nigerian banks as fallback
     const banks = [
-      { name: 'Access Bank', code: '044' },
-      { name: 'Guaranty Trust Bank', code: '058' },
-      { name: 'United Bank for Africa', code: '033' },
-      { name: 'Zenith Bank', code: '057' },
-      { name: 'First Bank of Nigeria', code: '011' },
-      { name: 'Fidelity Bank', code: '070' },
-      { name: 'Ecobank Nigeria', code: '050' },
-      { name: 'Diamond Bank', code: '063' },
-      { name: 'Polaris Bank', code: '076' },
-      { name: 'Union Bank of Nigeria', code: '032' },
-      { name: 'Stanbic IBTC Bank', code: '221' },
-      { name: 'Sterling Bank', code: '232' },
-      { name: 'Wema Bank', code: '035' },
-      { name: 'Unity Bank', code: '215' },
-      { name: 'Keystone Bank', code: '082' },
+      // { name: 'Access Bank', code: '044' },
+      // { name: 'Guaranty Trust Bank', code: '058' },
+      // { name: 'United Bank for Africa', code: '033' },
+      // { name: 'Zenith Bank', code: '057' },
+      // { name: 'First Bank of Nigeria', code: '011' },
+      // { name: 'Fidelity Bank', code: '070' },
+      // { name: 'Ecobank Nigeria', code: '050' },
+      // { name: 'Diamond Bank', code: '063' },
+      // { name: 'Polaris Bank', code: '076' },
+      // { name: 'Union Bank of Nigeria', code: '032' },
+      // { name: 'Stanbic IBTC Bank', code: '221' },
+      // { name: 'Sterling Bank', code: '232' },
+      // { name: 'Wema Bank', code: '035' },
+      // { name: 'Unity Bank', code: '215' },
+      // { name: 'Keystone Bank', code: '082' },
     ];
 
     const seededBanks = [];
-    
+
     for (const bankData of banks) {
       // Check if bank exists
       let bank = await this.bankRepository.findOne({
@@ -148,12 +148,12 @@ export class BanksService {
         });
         await this.bankRepository.save(bank);
       }
-      
+
       seededBanks.push(bank);
     }
 
-    return { 
-      message: 'Banks seeded successfully', 
+    return {
+      message: 'Banks seeded successfully',
       count: seededBanks.length,
       banks: seededBanks,
     };

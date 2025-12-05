@@ -1,73 +1,18 @@
 import { TransfersService } from './transfers.service';
-import { CreateTransferDto, TransferQuoteDto } from './dto/transfers.dto';
+import { TransferQuoteDto, TransferQuoteResponseDto } from './dto/transfer-quote.dto';
+import { CreateTransferDto, ProceedToTransferResponseDto, ApproveTransferDto } from './dto/create-transfer.dto';
 export declare class TransfersController {
-    private transfersService;
+    private readonly transfersService;
     constructor(transfersService: TransfersService);
-    createTransfer(req: any, createTransferDto: CreateTransferDto): Promise<import("../entities").Transfer | {
-        paymentIntent: {
-            id: string;
-            clientSecret: string;
-            status: import("stripe").Stripe.PaymentIntent.Status;
-        };
-        id: string;
-        senderId: string;
-        receiverId: string;
-        amount: number;
-        fee: number;
-        exchangeRate: number;
-        sourceCurrency: string;
-        targetCurrency: string;
-        purpose: string;
-        status: import("../enums/common.enum").TransferStatus;
-        reference: string;
-        paymentMethodId: string;
-        recipientBankId: string;
-        recipientAccount: string;
-        recipientName: string;
-        recipientPhone: string;
-        notes: string;
-        processedAt: Date;
-        completedAt: Date;
-        createdAt: Date;
-        updatedAt: Date;
-        transactions: any[];
-        paymentMethod: any;
-        receiver: any;
-        recipientBank: any;
-        sender: any;
-    }>;
-    getQuote(quoteDto: TransferQuoteDto): Promise<{
-        sourceAmount: import("decimal.js").Decimal;
-        targetAmount: import("decimal.js").Decimal;
-        fee: import("decimal.js").Decimal;
-        transferFee: import("decimal.js").Decimal;
-        conversionFee: import("decimal.js").Decimal;
-        exchangeRate: import("decimal.js").Decimal;
-        sourceCurrency: string;
-        targetCurrency: string;
-        totalCost: import("decimal.js").Decimal;
-    }>;
-    getQuoteViaGet(amount: number, sourceCurrency?: string, targetCurrency?: string, paymentMethodType?: string): Promise<{
-        sourceAmount: import("decimal.js").Decimal;
-        targetAmount: import("decimal.js").Decimal;
-        fee: import("decimal.js").Decimal;
-        transferFee: import("decimal.js").Decimal;
-        conversionFee: import("decimal.js").Decimal;
-        exchangeRate: import("decimal.js").Decimal;
-        sourceCurrency: string;
-        targetCurrency: string;
-        totalCost: import("decimal.js").Decimal;
-    }>;
+    getQuote(dto: TransferQuoteDto): Promise<TransferQuoteResponseDto>;
+    proceedToTransfer(req: any, dto: CreateTransferDto): Promise<ProceedToTransferResponseDto>;
+    getTransferByReference(req: any, reference: string): Promise<import("../entities").Transfer>;
     getUserTransfers(req: any, page?: number, limit?: number, status?: string): Promise<{
-        transfers: import("../entities").Transfer[];
-        pagination: {
-            currentPage: number;
-            totalPages: number;
-            totalItems: number;
-            itemsPerPage: number;
-        };
+        data: import("../entities").Transfer[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
     }>;
-    getTransferById(req: any, id: string): Promise<import("../entities").Transfer>;
-    cancelTransfer(req: any, id: string): Promise<import("../entities").Transfer>;
-    createTransferWithPayment(req: any, createTransferDto: CreateTransferDto): Promise<import("../entities").Transfer>;
+    approveTransfer(req: any, id: string, dto: ApproveTransferDto): Promise<import("../entities").Transfer>;
 }

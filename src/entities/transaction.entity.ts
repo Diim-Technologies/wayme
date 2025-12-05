@@ -51,6 +51,12 @@ export class Transaction {
   @Column('text', { nullable: true })
   gatewayResponse: string;
 
+  @Column('text', { nullable: true })
+  description: string;
+
+  @Column('json', { nullable: true })
+  metadata: any;
+
   @Column({ nullable: true })
   failureReason: string;
 

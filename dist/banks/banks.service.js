@@ -99,23 +99,7 @@ let BanksService = class BanksService {
         }
     }
     async seedBanks() {
-        const banks = [
-            { name: 'Access Bank', code: '044' },
-            { name: 'Guaranty Trust Bank', code: '058' },
-            { name: 'United Bank for Africa', code: '033' },
-            { name: 'Zenith Bank', code: '057' },
-            { name: 'First Bank of Nigeria', code: '011' },
-            { name: 'Fidelity Bank', code: '070' },
-            { name: 'Ecobank Nigeria', code: '050' },
-            { name: 'Diamond Bank', code: '063' },
-            { name: 'Polaris Bank', code: '076' },
-            { name: 'Union Bank of Nigeria', code: '032' },
-            { name: 'Stanbic IBTC Bank', code: '221' },
-            { name: 'Sterling Bank', code: '232' },
-            { name: 'Wema Bank', code: '035' },
-            { name: 'Unity Bank', code: '215' },
-            { name: 'Keystone Bank', code: '082' },
-        ];
+        const banks = [];
         const seededBanks = [];
         for (const bankData of banks) {
             let bank = await this.bankRepository.findOne({

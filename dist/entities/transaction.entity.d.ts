@@ -11,6 +11,8 @@ export declare class Transaction {
     gatewayRef: string;
     gatewayData: any;
     gatewayResponse: string;
+    description: string;
+    metadata: any;
     failureReason: string;
     processedAt: Date;
     createdAt: Date;

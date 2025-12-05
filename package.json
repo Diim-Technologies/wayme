@@ -25,7 +25,11 @@
     "typeorm:migration:run": "npm run typeorm -- migration:run -d src/config/typeorm.config.ts",
     "typeorm:migration:revert": "npm run typeorm -- migration:revert -d src/config/typeorm.config.ts",
     "typeorm:schema:sync": "npm run typeorm -- schema:sync -d src/config/typeorm.config.ts",
-    "typeorm:schema:drop": "npm run typeorm -- schema:drop -d src/config/typeorm.config.ts"
+    "typeorm:schema:drop": "npm run typeorm -- schema:drop -d src/config/typeorm.config.ts",
+    "migrate:stripe-payment-methods": "ts-node src/scripts/migrate-stripe-payment-methods.ts",
+    "verify:stripe-payment-methods": "ts-node src/scripts/verify-stripe-payment-methods.ts",
+    "seed:stripe-payment-methods": "ts-node src/scripts/seed-stripe-payment-methods.ts",
+    "seed:test-payment-methods": "ts-node src/scripts/seed-test-payment-methods.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

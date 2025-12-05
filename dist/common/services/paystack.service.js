@@ -78,7 +78,7 @@ let PaystackService = class PaystackService {
                 throw new common_1.HttpException('Failed to fetch bank list', common_1.HttpStatus.BAD_GATEWAY);
             }
             return response.data.data
-                .filter(bank => bank.active && bank.country === 'NG')
+                .filter(bank => bank.active && bank.country === 'Nigeria')
                 .map(bank => ({
                 id: bank.id,
                 name: bank.name,

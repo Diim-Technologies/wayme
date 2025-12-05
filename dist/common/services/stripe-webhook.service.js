@@ -86,9 +86,8 @@ let StripeWebhookService = StripeWebhookService_1 = class StripeWebhookService {
             }
             await this.dataSource.transaction(async (manager) => {
                 await manager.update(entities_1.Transfer, { id: transferId }, {
-                    status: common_enum_1.TransferStatus.COMPLETED,
+                    status: common_enum_1.TransferStatus.PENDING,
                     processedAt: new Date(),
-                    completedAt: new Date(),
                 });
                 await manager.update(entities_1.Transaction, { transferId }, {
                     status: common_enum_1.TransactionStatus.SUCCESS,
@@ -106,14 +105,15 @@ let StripeWebhookService = StripeWebhookService_1 = class StripeWebhookService {
                 if (transfer) {
                     const notification = manager.create(entities_1.Notification, {
                         userId: transfer.senderId,
-                        type: common_enum_1.NotificationType.TRANSFER_COMPLETED,
-                        title: 'Transfer Completed',
-                        message: `Your transfer of ₦${transfer.amount.toLocaleString()} has been completed successfully.`,
+                        type: common_enum_1.NotificationType.TRANSFER_SENT,
+                        title: 'Payment Successful - Transfer Pending',
+                        message: `Your payment of ₦${transfer.amount.toLocaleString()} was successful. Your transfer (Ref: ${transfer.reference}) is now pending admin approval.`,
                         data: {
                             transferId,
                             reference: transfer.reference,
                             amount: transfer.amount,
                             paymentIntentId: paymentIntent.id,
+                            status: 'PENDING_APPROVAL',
                         },
                     });
                     await manager.save(entities_1.Notification, notification);

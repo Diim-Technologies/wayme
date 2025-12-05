@@ -21,7 +21,7 @@ export class StripeWebhookService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private dataSource: DataSource,
-  ) {}
+  ) { }
 
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
     this.logger.log(`Received webhook event: ${event.type} with ID: ${event.id}`);
@@ -83,7 +83,7 @@ export class StripeWebhookService {
 
   async handlePaymentIntentSucceeded(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    
+
     this.logger.log(`Payment intent succeeded: ${paymentIntent.id}`);
 
     try {
@@ -95,11 +95,10 @@ export class StripeWebhookService {
       }
 
       await this.dataSource.transaction(async (manager) => {
-        // Update transfer status to completed
+        // Update transfer status to PENDING (awaiting admin approval)
         await manager.update(Transfer, { id: transferId }, {
-          status: TransferStatus.COMPLETED,
+          status: TransferStatus.PENDING,
           processedAt: new Date(),
-          completedAt: new Date(),
         });
 
         // Update related transactions
@@ -113,7 +112,7 @@ export class StripeWebhookService {
           }),
         });
 
-        // Create success notification
+        // Create payment success notification (transfer pending admin approval)
         const transfer = await manager.findOne(Transfer, {
           where: { id: transferId },
           relations: ['sender'],
@@ -122,14 +121,15 @@ export class StripeWebhookService {
         if (transfer) {
           const notification = manager.create(Notification, {
             userId: transfer.senderId,
-            type: NotificationType.TRANSFER_COMPLETED,
-            title: 'Transfer Completed',
-            message: `Your transfer of ₦${transfer.amount.toLocaleString()} has been completed successfully.`,
+            type: NotificationType.TRANSFER_SENT,
+            title: 'Payment Successful - Transfer Pending',
+            message: `Your payment of ₦${transfer.amount.toLocaleString()} was successful. Your transfer (Ref: ${transfer.reference}) is now pending admin approval.`,
             data: {
               transferId,
               reference: transfer.reference,
               amount: transfer.amount,
               paymentIntentId: paymentIntent.id,
+              status: 'PENDING_APPROVAL',
             },
           });
           await manager.save(Notification, notification);
@@ -144,7 +144,7 @@ export class StripeWebhookService {
 
   async handlePaymentIntentFailed(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    
+
     this.logger.log(`Payment intent failed: ${paymentIntent.id}`);
 
     try {
@@ -205,7 +205,7 @@ export class StripeWebhookService {
 
   async handlePaymentIntentCanceled(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    
+
     this.logger.log(`Payment intent canceled: ${paymentIntent.id}`);
 
     try {
@@ -266,7 +266,7 @@ export class StripeWebhookService {
 
   async handlePaymentMethodDetached(event: Stripe.Event) {
     const paymentMethod = event.data.object as Stripe.PaymentMethod;
-    
+
     this.logger.log(`Payment method detached: ${paymentMethod.id}`);
 
     try {
@@ -284,7 +284,7 @@ export class StripeWebhookService {
 
   async handleSetupIntentSucceeded(event: Stripe.Event) {
     const setupIntent = event.data.object as Stripe.SetupIntent;
-    
+
     this.logger.log(`Setup intent succeeded: ${setupIntent.id}`);
 
     try {
@@ -358,7 +358,7 @@ export class StripeWebhookService {
 
   async handleCustomerSubscriptionDeleted(event: Stripe.Event) {
     const subscription = event.data.object as Stripe.Subscription;
-    
+
     this.logger.log(`Customer subscription deleted: ${subscription.id}`);
 
     try {

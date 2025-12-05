@@ -239,6 +239,45 @@ let AdminService = class AdminService {
             },
         });
     }
+    async approveTransfer(transferId) {
+        const transfer = await this.transferRepository.findOne({
+            where: { id: transferId },
+            relations: ['sender', 'transactions'],
+        });
+        if (!transfer) {
+            throw new common_1.NotFoundException('Transfer not found');
+        }
+        if (transfer.status !== common_enum_1.TransferStatus.PENDING) {
+            throw new common_1.BadRequestException(`Transfer is not pending approval. Current status: `);
+        }
+        const hasSuccessfulPayment = transfer.transactions?.some(t => t.status === common_enum_1.TransactionStatus.SUCCESS && t.gatewayRef);
+        if (!hasSuccessfulPayment) {
+            throw new common_1.BadRequestException('Transfer payment has not been completed successfully');
+        }
+        await this.dataSource.transaction(async (manager) => {
+            await manager.update(entities_1.Transfer, { id: transferId }, {
+                status: common_enum_1.TransferStatus.COMPLETED,
+                completedAt: new Date(),
+            });
+            const amount = transfer.amount * 100;
+            const notification = manager.create(entities_1.Notification, {
+                userId: transfer.senderId,
+                type: common_enum_1.NotificationType.TRANSFER_COMPLETED,
+                title: 'Transfer Approved',
+                message: `Your transfer of  with reference  has been approved and completed.`,
+                data: { transferId, reference: transfer.reference, amount },
+            });
+            await manager.save(entities_1.Notification, notification);
+        });
+        return this.transferRepository.findOne({
+            where: { id: transferId },
+            relations: ['sender', 'receiver', 'recipientBank'],
+            select: {
+                sender: { firstName: true, lastName: true, email: true },
+                receiver: { firstName: true, lastName: true, email: true },
+            },
+        });
+    }
     async deactivateUser(userId) {
         const user = await this.userRepository.findOne({
             where: { id: userId },

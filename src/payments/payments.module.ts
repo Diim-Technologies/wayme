@@ -1,14 +1,26 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PaymentMethod, User, Transfer, Transaction } from '../entities';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
-import { CommonModule } from '../common/common.module';
+import { Transfer } from '../entities/transfer.entity';
+import { Transaction } from '../entities/transaction.entity';
+import { StripePaymentMethod } from '../entities/stripe-payment-method.entity';
+import { User } from '../entities/user.entity';
+import { StripeService } from '../common/services/stripe.service';
+import { TransfersModule } from '../transfers/transfers.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PaymentMethod, User, Transfer, Transaction]), CommonModule],
-  controllers: [PaymentsController],
-  providers: [PaymentsService],
-  exports: [PaymentsService],
+    imports: [
+        TypeOrmModule.forFeature([
+            Transfer,
+            Transaction,
+            StripePaymentMethod,
+            User,
+        ]),
+        TransfersModule,
+    ],
+    controllers: [PaymentsController],
+    providers: [PaymentsService, StripeService],
+    exports: [PaymentsService],
 })
-export class PaymentsModule {}
+export class PaymentsModule { }

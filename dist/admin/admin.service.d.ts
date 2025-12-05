@@ -38,6 +38,7 @@ export declare class AdminService {
     updateUserRole(userId: string, updateUserRoleDto: UpdateUserRoleDto): Promise<User>;
     updateKycStatus(userId: string, kycStatus: string, reason?: string): Promise<User>;
     updateTransferStatus(transferId: string, status: string, reason?: string): Promise<Transfer>;
+    approveTransfer(transferId: string): Promise<Transfer>;
     deactivateUser(userId: string): Promise<{
         message: string;
         userId: string;

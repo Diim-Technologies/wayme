@@ -33,11 +33,11 @@ Wayame is a comprehensive financial services API built with NestJS that provides
 3. Set up environment variables (see [Environment Variables](#environment-variables))
 4. Run database migrations:
    ```bash
-   npx prisma migrate dev
+   npm run typeorm:migration:run
    ```
-5. Seed the database:
+5. Seed Stripe payment methods:
    ```bash
-   npx prisma db seed
+   npm run migrate:stripe-payment-methods
    ```
 6. Start the development server:
    ```bash
@@ -248,15 +248,13 @@ Delete user account.
 Base URL: `/payments`
 **Authentication Required**
 
-#### POST /payments/stripe/payment-intent
-Create a Stripe payment intent.
+#### POST /payments/create-intent
+Create a Stripe payment intent for a transfer.
 
 **Request Body:**
 ```json
 {
-  "amount": 1000,
-  "currency": "usd",
-  "recipientEmail": "recipient@example.com"
+  "transferReference": "WMT-1733403411000-ABC123"
 }
 ```
 
@@ -264,93 +262,195 @@ Create a Stripe payment intent.
 ```json
 {
   "clientSecret": "pi_xxx_secret_xxx",
-  "paymentIntentId": "pi_xxx"
+  "paymentIntentId": "pi_xxx",
+  "amount": 1055,
+  "currency": "ngn",
+  "transferReference": "WMT-1733403411000-ABC123"
 }
 ```
 
-#### POST /payments/stripe/confirm
-Confirm a Stripe payment.
+#### GET /payments/methods
+Get all available Stripe payment methods.
 
-**Request Body:**
+**Response:**
 ```json
-{
-  "paymentIntentId": "pi_xxx"
-}
+[
+  {
+    "id": "uuid",
+    "stripeType": "card",
+    "displayName": "Credit/Debit Card",
+    "category": "CARD",
+    "description": "Accept major credit and debit cards",
+    "supportedCountries": ["GLOBAL"],
+    "supportedCurrencies": ["ALL"],
+    "isActive": true
+  },
+  {
+    "id": "uuid",
+    "stripeType": "apple_pay",
+    "displayName": "Apple Pay",
+    "category": "WALLET",
+    "description": "Fast and secure payments with Apple Pay",
+    "supportedCountries": ["GLOBAL"],
+    "supportedCurrencies": ["ALL"],
+    "isActive": true
+  }
+]
 ```
 
-#### POST /payments/paystack/initialize
-Initialize Paystack payment.
+#### POST /payments/webhook
+Stripe webhook handler for payment events.
 
-**Request Body:**
-```json
-{
-  "amount": 10000,
-  "email": "user@example.com",
-  "currency": "NGN"
-}
-```
-
-#### POST /payments/paystack/verify/:reference
-Verify Paystack payment.
-
-**Parameters:**
-- `reference`: Payment reference from Paystack
+**Note:** This endpoint is called by Stripe and requires webhook signature verification.
 
 ---
 
 ### Money Transfers
 
 Base URL: `/transfers`
-**Authentication Required**
 
-#### POST /transfers
-Create a new money transfer.
+#### POST /transfers/quote
+Get a transfer quote with exchange rates and fees.
+
+**Authentication:** Not required (Public endpoint)
 
 **Request Body:**
 ```json
 {
-  "recipientEmail": "recipient@example.com",
-  "amount": 100.00,
-  "currency": "USD",
-  "description": "Payment for services"
+  "amount": 1000,
+  "fromCurrency": "NGN",
+  "toCurrency": "USD"
 }
 ```
-
-#### GET /transfers
-Get user's transfer history.
-
-**Query Parameters:**
-- `page` (optional): Page number for pagination
-- `limit` (optional): Number of items per page
-- `status` (optional): Filter by transfer status
 
 **Response:**
 ```json
 {
-  "transfers": [
-    {
-      "id": "uuid",
-      "amount": 100.00,
-      "currency": "USD",
-      "status": "COMPLETED",
-      "recipientEmail": "recipient@example.com",
-      "createdAt": "2023-11-23T10:30:00.000Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 25,
-    "pages": 3
-  }
+  "amount": 1000,
+  "fromCurrency": "NGN",
+  "toCurrency": "USD",
+  "exchangeRate": 0.0012,
+  "convertedAmount": 1.2,
+  "transferFee": 50,
+  "conversionFee": 5,
+  "totalFee": 55,
+  "totalAmount": 1055,
+  "expiresAt": "2025-12-05T13:15:00.000Z"
 }
 ```
 
-#### GET /transfers/:id
-Get specific transfer details.
+#### POST /transfers/proceed
+Create a new transfer and generate reference ID.
 
-#### PUT /transfers/:id/cancel
-Cancel a pending transfer.
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+  "amount": 1000,
+  "fromCurrency": "NGN",
+  "toCurrency": "USD",
+  "recipientName": "John Doe",
+  "recipientBankId": "uuid",
+  "recipientAccount": "1234567890",
+  "recipientPhone": "+2348012345678",
+  "purpose": "Family support",
+  "notes": "Monthly allowance"
+}
+```
+
+**Response:**
+```json
+{
+  "referenceId": "WMT-1733403411000-ABC123",
+  "amount": 1000,
+  "fromCurrency": "NGN",
+  "toCurrency": "USD",
+  "exchangeRate": 0.0012,
+  "transferFee": 50,
+  "conversionFee": 5,
+  "totalFee": 55,
+  "totalAmount": 1055,
+  "status": "PENDING"
+}
+```
+
+#### GET /transfers/:reference
+Get transfer details by reference ID.
+
+**Parameters:**
+- `reference`: Transfer reference (e.g., WMT-1733403411000-ABC123)
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "reference": "WMT-1733403411000-ABC123",
+  "amount": 1000,
+  "fee": 55,
+  "exchangeRate": 0.0012,
+  "sourceCurrency": "NGN",
+  "targetCurrency": "USD",
+  "status": "PENDING",
+  "recipientName": "John Doe",
+  "recipientAccount": "1234567890",
+  "recipientPhone": "+2348012345678",
+  "purpose": "Family support",
+  "createdAt": "2025-12-05T12:00:00.000Z"
+}
+```
+
+#### GET /transfers
+Get user's transfer history with pagination.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 10)
+- `status` (optional): Filter by status (PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "reference": "WMT-1733403411000-ABC123",
+      "amount": 1000,
+      "fee": 55,
+      "sourceCurrency": "NGN",
+      "targetCurrency": "USD",
+      "status": "COMPLETED",
+      "recipientName": "John Doe",
+      "createdAt": "2025-12-05T12:00:00.000Z"
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 3
+}
+```
+
+#### PATCH /transfers/:id/approve
+Approve a transfer (Admin only).
+
+**Request Body:**
+```json
+{
+  "notes": "Transfer approved"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "reference": "WMT-1733403411000-ABC123",
+  "status": "COMPLETED",
+  "processedAt": "2025-12-05T13:00:00.000Z",
+  "completedAt": "2025-12-05T13:00:00.000Z"
+}
+```
 
 ---
 
@@ -514,17 +614,51 @@ FRONTEND_URL="http://localhost:3000"
 
 ## Database Schema
 
-The application uses Prisma ORM with PostgreSQL. Key models include:
+The application uses TypeORM with PostgreSQL. Key entities include:
 
-- **User**: User accounts and profiles
-- **Transfer**: Money transfer records
-- **Payment**: Payment transaction records
-- **BankAccount**: User bank account information
+- **User**: User accounts and authentication
+- **UserProfile**: Extended user profile information
+- **Transfer**: Money transfer records with exchange rates
+- **Transaction**: Payment transaction tracking
+- **PaymentMethod**: User payment methods
+- **StripePaymentMethod**: Available Stripe payment methods catalog
+- **Bank**: Supported banks
+- **Beneficiary**: Saved beneficiary information
+- **Currency**: Supported currencies
+- **ExchangeRate**: Currency exchange rates
+- **Fee**: Fee configuration for transfers and conversions
 - **Notification**: User notifications
 - **OTP**: One-time passwords for verification
-- **FeeConfiguration**: System fee settings
 
-For detailed schema, see `prisma/schema.prisma`
+For detailed schema, see entity files in `src/entities/`
+
+### Database Migrations
+
+Run migrations using TypeORM:
+```bash
+# Run migrations
+npm run typeorm:migration:run
+
+# Generate new migration
+npm run typeorm:migration:generate -- src/migrations/MigrationName
+
+# Revert last migration
+npm run typeorm:migration:revert
+```
+
+### Seeding Data
+
+Seed Stripe payment methods:
+```bash
+npm run migrate:stripe-payment-methods
+```
+
+Verify seeded data:
+```bash
+npm run verify:stripe-payment-methods
+```
+
+For detailed schema, see entity files in `src/entities/`
 
 ## Development
 
@@ -543,17 +677,17 @@ npm run start:prod
 
 ### Database Operations
 ```bash
-# Generate Prisma client
-npx prisma generate
-
 # Run migrations
-npx prisma migrate dev
+npm run typeorm:migration:run
 
-# Reset database
-npx prisma migrate reset
+# Generate new migration
+npm run typeorm:migration:generate -- src/migrations/MigrationName
 
-# View database
-npx prisma studio
+# Revert last migration
+npm run typeorm:migration:revert
+
+# Seed Stripe payment methods
+npm run migrate:stripe-payment-methods
 ```
 
 ## Support
@@ -562,7 +696,5 @@ For API support and questions, please contact the development team or create an 
 
 ---
 
-**Version:** 1.0.0  
-**Last Updated:** November 23, 2025# wayme
-# wayme
-# wayme
+**Version:** 2.0.0  
+**Last Updated:** December 5, 2025

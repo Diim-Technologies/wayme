@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
 import { UserRole, KycStatus } from '../enums/user.enum';
-import { TransferStatus, NotificationType } from '../enums/common.enum';
+import { TransferStatus, NotificationType, TransactionStatus } from '../enums/common.enum';
 import { UpdateUserRoleDto, AdminStatsDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
@@ -30,7 +30,7 @@ export class AdminService {
     private dataSource: DataSource,
     private currencyService: CurrencyService,
     private feeService: FeeService,
-  ) {}
+  ) { }
 
   async getDashboardStats(): Promise<AdminStatsDto> {
     const [
@@ -225,7 +225,7 @@ export class AdminService {
     }
 
     const updateData: any = { status };
-    
+
     if (status === TransferStatus.COMPLETED) {
       updateData.completedAt = new Date();
     } else if (status === TransferStatus.PROCESSING) {
@@ -257,6 +257,55 @@ export class AdminService {
         });
         await manager.save(Notification, notification);
       }
+    });
+
+    return this.transferRepository.findOne({
+      where: { id: transferId },
+      relations: ['sender', 'receiver', 'recipientBank'],
+      select: {
+        sender: { firstName: true, lastName: true, email: true },
+        receiver: { firstName: true, lastName: true, email: true },
+      },
+    });
+  }
+
+  async approveTransfer(transferId: string) {
+    const transfer = await this.transferRepository.findOne({
+      where: { id: transferId },
+      relations: ['sender', 'transactions'],
+    });
+
+    if (!transfer) {
+      throw new NotFoundException('Transfer not found');
+    }
+
+    if (transfer.status !== TransferStatus.PENDING) {
+      throw new BadRequestException(`Transfer is not pending approval. Current status: `);
+    }
+
+    const hasSuccessfulPayment = transfer.transactions?.some(
+      t => t.status === TransactionStatus.SUCCESS && t.gatewayRef
+    );
+
+    if (!hasSuccessfulPayment) {
+      throw new BadRequestException('Transfer payment has not been completed successfully');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(Transfer, { id: transferId }, {
+        status: TransferStatus.COMPLETED,
+        completedAt: new Date(),
+      });
+
+      const amount = transfer.amount * 100;
+      const notification = manager.create(Notification, {
+        userId: transfer.senderId,
+        type: NotificationType.TRANSFER_COMPLETED,
+        title: 'Transfer Approved',
+        message: `Your transfer of  with reference  has been approved and completed.`,
+        data: { transferId, reference: transfer.reference, amount },
+      });
+      await manager.save(Notification, notification);
     });
 
     return this.transferRepository.findOne({
@@ -386,7 +435,7 @@ export class AdminService {
     const targetRate = exchangeRate.find(
       rate => rate.fromCurrency === fromCurrency && rate.toCurrency === toCurrency
     );
-    
+
     if (!targetRate) {
       throw new NotFoundException('Exchange rate not found');
     }

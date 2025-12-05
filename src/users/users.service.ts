@@ -11,7 +11,7 @@ export class UsersService {
     private userRepository: Repository<User>,
     @InjectRepository(UserProfile)
     private userProfileRepository: Repository<UserProfile>,
-  ) {}
+  ) { }
 
   async findById(id: string) {
     const user = await this.userRepository.findOne({
@@ -96,7 +96,6 @@ export class UsersService {
 
   async getTransferHistory(userId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-
     const [transfers, total] = await Promise.all([
       this.userRepository
         .createQueryBuilder('user')
@@ -114,17 +113,17 @@ export class UsersService {
         .then(users => {
           const user = users[0];
           if (!user) return [];
-          
+
           const allTransfers = [
             ...user.sentTransfers.map(t => ({ ...t, type: 'sent' })),
             ...user.receivedTransfers.map(t => ({ ...t, type: 'received' }))
           ];
-          
+
           return allTransfers
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, limit);
         }),
-      
+
       this.userRepository
         .createQueryBuilder('user')
         .leftJoin('user.sentTransfers', 'sentTransfer')

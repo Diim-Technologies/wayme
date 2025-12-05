@@ -1,427 +1,172 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
-import { PaymentMethod, User, Transfer, Transaction } from '../entities';
-import { PaymentMethodType, TransferStatus } from '../enums/common.enum';
-import { ConfigService } from '@nestjs/config';
-import { PaystackService } from '../common/services/paystack.service';
+import { Repository } from 'typeorm';
+import { Transfer } from '../entities/transfer.entity';
+import { Transaction } from '../entities/transaction.entity';
+import { StripePaymentMethod } from '../entities/stripe-payment-method.entity';
+import { TransferStatus, TransactionType, TransactionStatus } from '../enums/common.enum';
 import { StripeService } from '../common/services/stripe.service';
+import { TransfersService } from '../transfers/transfers.service';
+import { CreatePaymentDto, PaymentIntentResponseDto } from './dto/create-payment.dto';
 
 @Injectable()
 export class PaymentsService {
-  constructor(
-    @InjectRepository(PaymentMethod)
-    private paymentMethodRepository: Repository<PaymentMethod>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Transfer)
-    private transferRepository: Repository<Transfer>,
-    @InjectRepository(Transaction)
-    private transactionRepository: Repository<Transaction>,
-    private dataSource: DataSource,
-    private configService: ConfigService,
-    private paystackService: PaystackService,
-    private stripeService: StripeService,
-  ) {}
+    private readonly logger = new Logger(PaymentsService.name);
 
-  async getUserPaymentMethods(userId: string) {
-    return this.paymentMethodRepository.find({
-      where: {
-        userId,
-        isActive: true,
-      },
-      order: {
-        isDefault: 'DESC',
-        createdAt: 'DESC',
-      },
-    });
-  }
+    constructor(
+        @InjectRepository(Transfer)
+        private transferRepository: Repository<Transfer>,
+        @InjectRepository(Transaction)
+        private transactionRepository: Repository<Transaction>,
+        @InjectRepository(StripePaymentMethod)
+        private stripePaymentMethodRepository: Repository<StripePaymentMethod>,
+        private stripeService: StripeService,
+        private transfersService: TransfersService,
+    ) { }
 
-  async addCardPaymentMethod(userId: string, cardData: {
-    cardNumber: string;
-    expiryMonth: number;
-    expiryYear: number;
-    cvc: string;
-    holderName: string;
-  }) {
-    try {
-      // Get user details
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-        select: ['id', 'email', 'firstName', 'lastName'],
-      });
-
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      // Get or create Stripe customer
-      const customer = await this.stripeService.getOrCreateCustomer(
-        userId,
-        user.email,
-        `${user.firstName} ${user.lastName}`,
-      );
-
-      // Create payment method in Stripe
-      const stripePaymentMethod = await this.stripeService.createPaymentMethod(customer.id, {
-        type: 'card',
-        card: {
-          number: cardData.cardNumber,
-          exp_month: cardData.expiryMonth,
-          exp_year: cardData.expiryYear,
-          cvc: cardData.cvc,
-        },
-      });
-
-      // Save payment method to database
-      const paymentMethod = this.paymentMethodRepository.create({
-        userId,
-        type: PaymentMethodType.CARD,
-        cardDetails: {
-          last4: stripePaymentMethod.card?.last4,
-          brand: stripePaymentMethod.card?.brand,
-          expiryMonth: stripePaymentMethod.card?.exp_month,
-          expiryYear: stripePaymentMethod.card?.exp_year,
-          holderName: cardData.holderName,
-          fingerprint: stripePaymentMethod.card?.fingerprint,
-          country: stripePaymentMethod.card?.country,
-        },
-        stripeId: stripePaymentMethod.id,
-      });
-
-      const savedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
-
-      // If this is the user's first payment method, make it default
-      const userPaymentMethodsCount = await this.paymentMethodRepository.count({
-        where: { userId, isActive: true },
-      });
-
-      if (userPaymentMethodsCount === 1) {
-        await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
-      }
-
-      return savedPaymentMethod;
-    } catch (error) {
-      if (error.type === 'StripeCardError') {
-        throw new BadRequestException(error.message);
-      }
-      throw error;
-    }
-  }
-
-  async addCardPaymentMethodWithSetupIntent(userId: string) {
-    try {
-      // Get user details
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-        select: ['id', 'email', 'firstName', 'lastName'],
-      });
-
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      // Get or create Stripe customer
-      const customer = await this.stripeService.getOrCreateCustomer(
-        userId,
-        user.email,
-        `${user.firstName} ${user.lastName}`,
-      );
-
-      // Create setup intent for saving payment method without charging
-      const setupIntent = await this.stripeService.createSetupIntent(customer.id);
-
-      return {
-        setupIntentId: setupIntent.id,
-        clientSecret: setupIntent.client_secret,
-        customerId: customer.id,
-      };
-    } catch (error) {
-      throw new BadRequestException('Failed to create payment method setup');
-    }
-  }
-
-  async confirmSetupIntent(userId: string, setupIntentId: string) {
-    try {
-      const setupIntent = await this.stripeService.retrieveSetupIntent(setupIntentId);
-      
-      if (setupIntent.status === 'succeeded' && setupIntent.payment_method) {
-        const paymentMethod = await this.stripeService.retrievePaymentMethod(
-          setupIntent.payment_method as string
+    async createPaymentIntent(
+        userId: string,
+        dto: CreatePaymentDto,
+    ): Promise<PaymentIntentResponseDto> {
+        // Get transfer by reference
+        const transfer = await this.transfersService.getTransferByReference(
+            dto.transferReference,
+            userId,
         );
 
-        // Save payment method to database
-        const dbPaymentMethod = this.paymentMethodRepository.create({
-          userId,
-          type: PaymentMethodType.CARD,
-          cardDetails: {
-            last4: paymentMethod.card?.last4,
-            brand: paymentMethod.card?.brand,
-            expiryMonth: paymentMethod.card?.exp_month,
-            expiryYear: paymentMethod.card?.exp_year,
-            fingerprint: paymentMethod.card?.fingerprint,
-            country: paymentMethod.card?.country,
-          },
-          stripeId: paymentMethod.id,
-        });
-
-        const savedPaymentMethod = await this.paymentMethodRepository.save(dbPaymentMethod);
-
-        // If this is the user's first payment method, make it default
-        const userPaymentMethodsCount = await this.paymentMethodRepository.count({
-          where: { userId, isActive: true },
-        });
-
-        if (userPaymentMethodsCount === 1) {
-          await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
+        if (!transfer) {
+            throw new NotFoundException('Transfer not found');
         }
 
-        return savedPaymentMethod;
-      } else {
-        throw new BadRequestException('Setup intent not completed successfully');
-      }
-    } catch (error) {
-      throw new BadRequestException('Failed to confirm payment method setup');
-    }
-  }
+        if (transfer.status !== TransferStatus.PENDING) {
+            throw new BadRequestException(
+                `Transfer cannot be paid. Current status: ${transfer.status}`,
+            );
+        }
 
-  async addBankPaymentMethod(userId: string, bankData: any) {
-    try {
-      // Verify bank account with Paystack before adding
-      const verification = await this.paystackService.verifyBankAccount(
-        bankData.accountNumber,
-        bankData.bankCode
-      );
+        // Calculate total amount (amount + fees)
+        const totalAmount = Number(transfer.amount) + Number(transfer.fee);
 
-      // Use verified account name from Paystack
-      const paymentMethod = this.paymentMethodRepository.create({
-        userId,
-        type: PaymentMethodType.BANK_TRANSFER,
-        bankDetails: {
-          accountNumber: verification.accountNumber,
-          accountName: verification.accountName, // Use Paystack verified name
-          bankName: bankData.bankName,
-          bankCode: bankData.bankCode,
-          isVerified: true,
-          verifiedAt: new Date().toISOString(),
-        },
-      });
+        // Get or create Stripe customer
+        const customer = await this.stripeService.getOrCreateCustomer(
+            userId,
+            transfer.sender.email,
+            `${transfer.sender.firstName} ${transfer.sender.lastName}`,
+        );
 
-      const savedPaymentMethod = await this.paymentMethodRepository.save(paymentMethod);
+        // Create payment intent
+        const paymentIntent = await this.stripeService.createPaymentIntent(
+            totalAmount,
+            transfer.sourceCurrency,
+            customer.id,
+            undefined,
+            {
+                transferId: transfer.id,
+                transferReference: transfer.reference,
+                userId,
+            },
+        );
 
-      // If this is the user's first payment method, make it default
-      const userPaymentMethodsCount = await this.paymentMethodRepository.count({
-        where: { userId, isActive: true },
-      });
+        this.logger.log(
+            `Payment intent created: ${paymentIntent.id} for transfer: ${transfer.reference}`,
+        );
 
-      if (userPaymentMethodsCount === 1) {
-        await this.setDefaultPaymentMethod(userId, savedPaymentMethod.id);
-      }
-
-      return savedPaymentMethod;
-    } catch (error) {
-      // Re-throw Paystack validation errors
-      if (error.status && error.message) {
-        throw error;
-      }
-      
-      throw new BadRequestException('Unable to verify bank account. Please check your details and try again.');
-    }
-  }
-
-  async createPaymentIntent(
-    userId: string,
-    amount: number,
-    currency: string,
-    paymentMethodId?: string,
-    transferId?: string,
-  ) {
-    try {
-      // Get user details
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-        select: ['id', 'email', 'firstName', 'lastName'],
-      });
-
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      // Get or create Stripe customer
-      const customer = await this.stripeService.getOrCreateCustomer(
-        userId,
-        user.email,
-        `${user.firstName} ${user.lastName}`,
-      );
-
-      // Prepare metadata
-      const metadata: Record<string, string> = {
-        userId,
-        userEmail: user.email,
-      };
-
-      if (transferId) {
-        metadata.transferId = transferId;
-      }
-
-      // Create payment intent
-      const paymentIntent = await this.stripeService.createPaymentIntent(
-        amount,
-        currency,
-        customer.id,
-        paymentMethodId,
-        metadata,
-      );
-
-      return {
-        paymentIntentId: paymentIntent.id,
-        clientSecret: paymentIntent.client_secret,
-        status: paymentIntent.status,
-      };
-    } catch (error) {
-      throw new BadRequestException('Failed to create payment intent');
-    }
-  }
-
-  async confirmPaymentIntent(paymentIntentId: string, paymentMethodId?: string) {
-    try {
-      const paymentIntent = await this.stripeService.confirmPaymentIntent(
-        paymentIntentId,
-        paymentMethodId,
-      );
-
-      return {
-        paymentIntentId: paymentIntent.id,
-        status: paymentIntent.status,
-        clientSecret: paymentIntent.client_secret,
-      };
-    } catch (error) {
-      throw new BadRequestException('Payment confirmation failed');
-    }
-  }
-
-  async getPaymentIntentStatus(paymentIntentId: string) {
-    try {
-      const paymentIntent = await this.stripeService.retrievePaymentIntent(paymentIntentId);
-      
-      return {
-        paymentIntentId: paymentIntent.id,
-        status: paymentIntent.status,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        lastPaymentError: paymentIntent.last_payment_error,
-      };
-    } catch (error) {
-      throw new NotFoundException('Payment intent not found');
-    }
-  }
-
-  async refundPayment(paymentIntentId: string, amount?: number, reason?: string) {
-    try {
-      const refund = await this.stripeService.createRefund(
-        paymentIntentId,
-        amount,
-        reason as any,
-      );
-
-      return {
-        refundId: refund.id,
-        amount: refund.amount,
-        status: refund.status,
-        reason: refund.reason,
-      };
-    } catch (error) {
-      throw new BadRequestException('Failed to process refund');
-    }
-  }
-
-  async setDefaultPaymentMethod(userId: string, paymentMethodId: string) {
-    // Verify the payment method belongs to the user
-    const paymentMethod = await this.paymentMethodRepository.findOne({
-      where: {
-        id: paymentMethodId,
-        userId,
-        isActive: true,
-      },
-    });
-
-    if (!paymentMethod) {
-      throw new NotFoundException('Payment method not found');
+        return {
+            clientSecret: paymentIntent.client_secret,
+            paymentIntentId: paymentIntent.id,
+            amount: totalAmount,
+            currency: transfer.sourceCurrency.toLowerCase(),
+            transferReference: transfer.reference,
+        };
     }
 
-    await this.dataSource.transaction(async (manager) => {
-      // Remove default from all other payment methods
-      await manager.update(PaymentMethod, {
-        userId,
-        isActive: true,
-      }, { isDefault: false });
+    async handlePaymentSuccess(paymentIntentId: string): Promise<void> {
+        // Retrieve payment intent from Stripe
+        const paymentIntent = await this.stripeService.retrievePaymentIntent(paymentIntentId);
 
-      // Set the new default
-      await manager.update(PaymentMethod, { id: paymentMethodId }, { isDefault: true });
-    });
+        if (paymentIntent.status !== 'succeeded') {
+            throw new BadRequestException('Payment has not succeeded');
+        }
 
-    return this.paymentMethodRepository.findOne({ where: { id: paymentMethodId } });
-  }
+        const transferId = paymentIntent.metadata.transferId;
+        if (!transferId) {
+            throw new BadRequestException('Transfer ID not found in payment metadata');
+        }
 
-  async removePaymentMethod(userId: string, paymentMethodId: string) {
-    const paymentMethod = await this.paymentMethodRepository.findOne({
-      where: {
-        id: paymentMethodId,
-        userId,
-        isActive: true,
-      },
-    });
+        // Get transfer
+        const transfer = await this.transferRepository.findOne({
+            where: { id: transferId },
+            relations: ['sender'],
+        });
 
-    if (!paymentMethod) {
-      throw new NotFoundException('Payment method not found');
+        if (!transfer) {
+            throw new NotFoundException('Transfer not found');
+        }
+
+        // Create transaction record
+        const transaction = this.transactionRepository.create({
+            transferId: transfer.id,
+            type: TransactionType.DEBIT,
+            amount: Number(transfer.amount) + Number(transfer.fee),
+            currency: transfer.sourceCurrency,
+            status: TransactionStatus.SUCCESS,
+            reference: paymentIntent.id,
+            description: `Payment for transfer ${transfer.reference}`,
+            metadata: {
+                paymentIntentId: paymentIntent.id,
+                stripeCustomerId: paymentIntent.customer,
+                userId: transfer.senderId,
+            },
+        });
+
+        await this.transactionRepository.save(transaction);
+
+        this.logger.log(
+            `Payment successful for transfer: ${transfer.reference}. Status set to PENDING for admin approval.`,
+        );
+
+        // Note: Transfer status remains PENDING - admin will approve it
     }
 
-    // Check if there are pending transfers using this payment method
-    const pendingTransfers = await this.transferRepository.count({
-      where: {
-        paymentMethodId,
-        status: In([TransferStatus.PENDING, TransferStatus.PROCESSING]),
-      },
-    });
-
-    if (pendingTransfers > 0) {
-      throw new BadRequestException(
-        'Cannot remove payment method with pending transfers',
-      );
+    async getAvailablePaymentMethods() {
+        return this.stripePaymentMethodRepository.find({
+            where: { isActive: true },
+            order: { category: 'ASC', displayName: 'ASC' },
+        });
     }
 
-    // Detach from Stripe if it's a card
-    if (paymentMethod.type === PaymentMethodType.CARD && paymentMethod.stripeId) {
-      try {
-        await this.stripeService.detachPaymentMethod(paymentMethod.stripeId);
-      } catch (error) {
-        // Log error but don't fail the operation
-        console.error('Failed to detach payment method from Stripe:', error);
-      }
+    async handlePaymentFailure(paymentIntentId: string): Promise<void> {
+        const paymentIntent = await this.stripeService.retrievePaymentIntent(paymentIntentId);
+        const transferId = paymentIntent.metadata.transferId;
+
+        if (transferId) {
+            const transfer = await this.transferRepository.findOne({
+                where: { id: transferId },
+            });
+
+            if (transfer) {
+                // Create failed transaction record
+                const transaction = this.transactionRepository.create({
+                    transferId: transfer.id,
+                    type: TransactionType.DEBIT,
+                    amount: Number(transfer.amount) + Number(transfer.fee),
+                    currency: transfer.sourceCurrency,
+                    status: TransactionStatus.FAILED,
+                    reference: paymentIntent.id,
+                    description: `Failed payment for transfer ${transfer.reference}`,
+                    failureReason: paymentIntent.last_payment_error?.message || 'Unknown error',
+                    metadata: {
+                        paymentIntentId: paymentIntent.id,
+                        userId: transfer.senderId,
+                    },
+                });
+
+                await this.transactionRepository.save(transaction);
+
+                this.logger.warn(
+                    `Payment failed for transfer: ${transfer.reference}`,
+                );
+            }
+        }
     }
-
-    // Soft delete the payment method
-    const updatedPaymentMethod = await this.paymentMethodRepository.save({
-      ...paymentMethod,
-      isActive: false,
-    });
-
-    // If this was the default payment method, set another one as default
-    if (paymentMethod.isDefault) {
-      const nextPaymentMethod = await this.paymentMethodRepository.findOne({
-        where: {
-          userId,
-          isActive: true,
-          id: paymentMethodId, // Exclude current one
-        },
-        order: { createdAt: 'DESC' },
-      });
-
-      if (nextPaymentMethod) {
-        await this.setDefaultPaymentMethod(userId, nextPaymentMethod.id);
-      }
-    }
-
-    return updatedPaymentMethod;
-  }
 }

@@ -9,18 +9,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransfersModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const entities_1 = require("../entities");
 const transfers_controller_1 = require("./transfers.controller");
 const transfers_service_1 = require("./transfers.service");
-const common_module_1 = require("../common/common.module");
+const transfer_entity_1 = require("../entities/transfer.entity");
+const user_entity_1 = require("../entities/user.entity");
+const payment_method_entity_1 = require("../entities/payment-method.entity");
+const transaction_entity_1 = require("../entities/transaction.entity");
+const currency_service_1 = require("../common/services/currency.service");
+const fee_service_1 = require("../common/services/fee.service");
+const exchange_rate_entity_1 = require("../entities/exchange-rate.entity");
+const fee_entity_1 = require("../entities/fee.entity");
 let TransfersModule = class TransfersModule {
 };
 exports.TransfersModule = TransfersModule;
 exports.TransfersModule = TransfersModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.Transfer, entities_1.Transaction, entities_1.PaymentMethod, entities_1.Bank, entities_1.User]), common_module_1.CommonModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                transfer_entity_1.Transfer,
+                user_entity_1.User,
+                payment_method_entity_1.PaymentMethod,
+                transaction_entity_1.Transaction,
+                exchange_rate_entity_1.ExchangeRate,
+                fee_entity_1.Fee,
+            ]),
+        ],
         controllers: [transfers_controller_1.TransfersController],
-        providers: [transfers_service_1.TransfersService],
+        providers: [transfers_service_1.TransfersService, currency_service_1.CurrencyService, fee_service_1.FeeService],
         exports: [transfers_service_1.TransfersService],
     })
 ], TransfersModule);
