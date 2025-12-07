@@ -94,7 +94,7 @@ export class TransfersService {
         // Create transfer record
         const transfer = this.transferRepository.create({
             id: randomUUID(),
-            senderId: userId,
+            sender: user,
             amount: dto.amount,
             fee: quote.totalFee,
             exchangeRate: quote.exchangeRate,

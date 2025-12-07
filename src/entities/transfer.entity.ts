@@ -52,7 +52,7 @@ export class Transfer {
   @Column({ unique: true })
   reference: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Index()
   paymentMethodId: string;
 

@@ -19,7 +19,7 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
   synchronize: false, // Disabled to prevent conflicts with existing schema
   logging: configService.get('NODE_ENV') === 'development',
   migrationsRun: false,
-  ssl: { rejectUnauthorized: false }, // Enabled for Railway connection
+  ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false, // Enabled for Railway connection
 });
 
 // DataSource for migrations
@@ -34,5 +34,5 @@ export default new DataSource({
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
   logging: true,
-  ssl: { rejectUnauthorized: false }, // Enabled for Railway connection
+  ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false, // Enabled for Railway connection
 });
