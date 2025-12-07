@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Decimal } from 'decimal.js';
@@ -92,6 +93,7 @@ export class TransfersService {
 
         // Create transfer record
         const transfer = this.transferRepository.create({
+            id: randomUUID(),
             senderId: userId,
             amount: dto.amount,
             fee: quote.totalFee,
