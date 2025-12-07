@@ -15,10 +15,21 @@ export class StripeService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {
-    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is required');
+    const mode = this.configService.get<string>('STRIPE_MODE', 'test');
+
+    let secretKey = this.configService.get<string>('STRIPE_SECRET_KEY'); // Fallback
+
+    if (mode === 'live') {
+      secretKey = this.configService.get<string>('STRIPE_SECRET_KEY_LIVE') || secretKey;
+    } else {
+      secretKey = this.configService.get<string>('STRIPE_SECRET_KEY_TEST') || secretKey;
     }
+
+    if (!secretKey) {
+      throw new Error(`STRIPE_SECRET_KEY is required for mode: ${mode}`);
+    }
+
+    this.logger.log(`Initializing Stripe in ${mode.toUpperCase()} mode`);
 
     this.stripe = new Stripe(secretKey, {
       apiVersion: '2023-10-16', // Use supported API version
@@ -84,7 +95,7 @@ export class StripeService {
   ): Promise<Stripe.PaymentMethod> {
     try {
       const paymentMethod = await this.stripe.paymentMethods.create(paymentMethodData);
-      
+
       // Attach to customer
       await this.stripe.paymentMethods.attach(paymentMethod.id, {
         customer: customerId,
@@ -274,9 +285,17 @@ export class StripeService {
 
   // Webhook signature verification
   constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const mode = this.configService.get<string>('STRIPE_MODE', 'test');
+    let webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET'); // Fallback
+
+    if (mode === 'live') {
+      webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET_LIVE') || webhookSecret;
+    } else {
+      webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET_TEST') || webhookSecret;
+    }
+
     if (!webhookSecret) {
-      throw new Error('STRIPE_WEBHOOK_SECRET is required');
+      throw new Error(`STRIPE_WEBHOOK_SECRET is required for mode: ${mode}`);
     }
 
     try {
