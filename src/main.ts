@@ -20,7 +20,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: [configService.get('FRONTEND_URL') || 'http://localhost:3000', 'http://localhost:5173', 'https://backendapi1-production.up.railway.app'],
+    origin: [configService.get('FRONTEND_URL') || 'http://localhost:3000', 'http://localhost:5173', 'https://backendapi1-production.up.railway.app', 'https://wayame.netlify.app'],
     credentials: true,
   });
 
