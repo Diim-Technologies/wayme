@@ -15,6 +15,7 @@ var TransfersService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransfersService = void 0;
 const common_1 = require("@nestjs/common");
+const crypto_1 = require("crypto");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const decimal_js_1 = require("decimal.js");
@@ -66,7 +67,8 @@ let TransfersService = TransfersService_1 = class TransfersService {
         });
         const reference = this.generateReferenceId();
         const transfer = this.transferRepository.create({
-            senderId: userId,
+            id: (0, crypto_1.randomUUID)(),
+            sender: user,
             amount: dto.amount,
             fee: quote.totalFee,
             exchangeRate: quote.exchangeRate,

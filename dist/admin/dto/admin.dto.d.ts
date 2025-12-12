@@ -18,3 +18,10 @@ export declare class AdminStatsDto {
     failedTransfers: number;
     pendingKyc: number;
 }
+export declare class CreateExchangeRateDto {
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    buyRate?: number;
+    sellRate?: number;
+}

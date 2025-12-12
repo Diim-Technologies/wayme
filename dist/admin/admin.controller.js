@@ -61,6 +61,13 @@ let AdminController = class AdminController {
     async getAllExchangeRates() {
         return this.adminService.getAllExchangeRates();
     }
+    async createExchangeRate(createExchangeRateDto) {
+        return this.adminService.updateExchangeRate(createExchangeRateDto.fromCurrency, createExchangeRateDto.toCurrency, {
+            rate: createExchangeRateDto.rate,
+            buyRate: createExchangeRateDto.buyRate,
+            sellRate: createExchangeRateDto.sellRate,
+        });
+    }
     async updateExchangeRate(fromCurrency, toCurrency, data) {
         return this.adminService.updateExchangeRate(fromCurrency, toCurrency, data);
     }
@@ -407,6 +414,20 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "getAllExchangeRates", null);
+__decorate([
+    (0, common_1.Post)('exchange-rates'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),
+    (0, swagger_1.ApiTags)('Admin - Exchange Rates'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Create new exchange rate',
+        description: 'Create a new currency exchange rate pair.'
+    }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Exchange rate created successfully' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [admin_dto_1.CreateExchangeRateDto]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "createExchangeRate", null);
 __decorate([
     (0, common_1.Put)('exchange-rates/:fromCurrency/:toCurrency'),
     (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),

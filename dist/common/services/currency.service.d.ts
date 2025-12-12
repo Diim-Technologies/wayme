@@ -8,8 +8,6 @@ export declare class CurrencyService {
     constructor(exchangeRateRepository: Repository<ExchangeRate>);
     updateExchangeRates(): Promise<void>;
     fetchAndUpdateRates(): Promise<void>;
-    private fetchRatesForCurrency;
-    private updateRatesInDatabase;
     getExchangeRate(fromCurrency: string, toCurrency: string, type?: 'buy' | 'sell' | 'mid'): Promise<Decimal>;
     getAllExchangeRates(): Promise<ExchangeRate[]>;
     manualRateUpdate(fromCurrency: string, toCurrency: string, rate: number, buyRate?: number, sellRate?: number): Promise<ExchangeRate>;

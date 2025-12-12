@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdminStatsDto = exports.UpdateTransferStatusDto = exports.UpdateKycStatusDto = exports.UpdateUserRoleDto = void 0;
+exports.CreateExchangeRateDto = exports.AdminStatsDto = exports.UpdateTransferStatusDto = exports.UpdateKycStatusDto = exports.UpdateUserRoleDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class UpdateUserRoleDto {
@@ -51,4 +51,34 @@ __decorate([
 class AdminStatsDto {
 }
 exports.AdminStatsDto = AdminStatsDto;
+class CreateExchangeRateDto {
+}
+exports.CreateExchangeRateDto = CreateExchangeRateDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'USD', description: 'Source currency code' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "fromCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'NGN', description: 'Target currency code' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateExchangeRateDto.prototype, "toCurrency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 850.50, description: 'Exchange rate' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExchangeRateDto.prototype, "rate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 845.00, description: 'Buy rate' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExchangeRateDto.prototype, "buyRate", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: 855.00, description: 'Sell rate' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExchangeRateDto.prototype, "sellRate", void 0);
 //# sourceMappingURL=admin.dto.js.map

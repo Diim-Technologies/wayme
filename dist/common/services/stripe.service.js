@@ -25,10 +25,18 @@ let StripeService = StripeService_1 = class StripeService {
         this.configService = configService;
         this.userRepository = userRepository;
         this.logger = new common_1.Logger(StripeService_1.name);
-        const secretKey = this.configService.get('STRIPE_SECRET_KEY');
-        if (!secretKey) {
-            throw new Error('STRIPE_SECRET_KEY is required');
+        const mode = this.configService.get('STRIPE_MODE', 'test');
+        let secretKey = this.configService.get('STRIPE_SECRET_KEY');
+        if (mode === 'live') {
+            secretKey = this.configService.get('STRIPE_SECRET_KEY_LIVE') || secretKey;
         }
+        else {
+            secretKey = this.configService.get('STRIPE_SECRET_KEY_TEST') || secretKey;
+        }
+        if (!secretKey) {
+            throw new Error(`STRIPE_SECRET_KEY is required for mode: ${mode}`);
+        }
+        this.logger.log(`Initializing Stripe in ${mode.toUpperCase()} mode`);
         this.stripe = new stripe_1.default(secretKey, {
             apiVersion: '2023-10-16',
         });
@@ -229,9 +237,16 @@ let StripeService = StripeService_1 = class StripeService {
         }
     }
     constructWebhookEvent(payload, signature) {
-        const webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
+        const mode = this.configService.get('STRIPE_MODE', 'test');
+        let webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET');
+        if (mode === 'live') {
+            webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET_LIVE') || webhookSecret;
+        }
+        else {
+            webhookSecret = this.configService.get('STRIPE_WEBHOOK_SECRET_TEST') || webhookSecret;
+        }
         if (!webhookSecret) {
-            throw new Error('STRIPE_WEBHOOK_SECRET is required');
+            throw new Error(`STRIPE_WEBHOOK_SECRET is required for mode: ${mode}`);
         }
         try {
             return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);

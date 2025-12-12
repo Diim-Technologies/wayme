@@ -66,7 +66,7 @@ __decorate([
     __metadata("design:type", String)
 ], Transfer.prototype, "reference", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], Transfer.prototype, "paymentMethodId", void 0);

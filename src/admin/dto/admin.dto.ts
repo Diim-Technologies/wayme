@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
 
 export class UpdateUserRoleDto {
   @ApiProperty({ example: 'ADMIN', enum: ['USER', 'ADMIN', 'SUPER_ADMIN'] })
@@ -37,4 +37,28 @@ export class AdminStatsDto {
   completedTransfers: number;
   failedTransfers: number;
   pendingKyc: number;
+}
+
+export class CreateExchangeRateDto {
+  @ApiProperty({ example: 'USD', description: 'Source currency code' })
+  @IsString()
+  fromCurrency: string;
+
+  @ApiProperty({ example: 'NGN', description: 'Target currency code' })
+  @IsString()
+  toCurrency: string;
+
+  @ApiProperty({ example: 850.50, description: 'Exchange rate' })
+  @IsNumber()
+  rate: number;
+
+  @ApiPropertyOptional({ example: 845.00, description: 'Buy rate' })
+  @IsOptional()
+  @IsNumber()
+  buyRate?: number;
+
+  @ApiPropertyOptional({ example: 855.00, description: 'Sell rate' })
+  @IsOptional()
+  @IsNumber()
+  sellRate?: number;
 }

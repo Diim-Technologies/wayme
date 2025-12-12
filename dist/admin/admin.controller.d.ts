@@ -1,5 +1,5 @@
 import { AdminService } from './admin.service';
-import { UpdateUserRoleDto, UpdateKycStatusDto, UpdateTransferStatusDto } from './dto/admin.dto';
+import { UpdateUserRoleDto, UpdateKycStatusDto, UpdateTransferStatusDto, CreateExchangeRateDto } from './dto/admin.dto';
 export declare class AdminController {
     private adminService;
     constructor(adminService: AdminService);
@@ -52,6 +52,7 @@ export declare class AdminController {
     }>;
     updateTransferStatus(transferId: string, updateTransferStatusDto: UpdateTransferStatusDto): Promise<import("../entities").Transfer>;
     getAllExchangeRates(): Promise<import("../entities").ExchangeRate[]>;
+    createExchangeRate(createExchangeRateDto: CreateExchangeRateDto): Promise<import("../entities").ExchangeRate>;
     updateExchangeRate(fromCurrency: string, toCurrency: string, data: {
         rate: number;
         buyRate?: number;

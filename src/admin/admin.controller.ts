@@ -1,22 +1,23 @@
-import { 
-  Controller, 
-  Get, 
-  Put, 
+import {
+  Controller,
+  Get,
+  Put,
   Post,
   Delete,
-  Patch, 
-  Body, 
-  Param, 
-  Query, 
-  UseGuards, 
-  Request 
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
-import { 
-  UpdateUserRoleDto, 
-  UpdateKycStatusDto, 
-  UpdateTransferStatusDto 
+import {
+  UpdateUserRoleDto,
+  UpdateKycStatusDto,
+  UpdateTransferStatusDto,
+  CreateExchangeRateDto
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -26,18 +27,18 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminService) { }
 
   // Dashboard & Analytics
   @Get('dashboard')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Dashboard')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get admin dashboard statistics',
     description: 'Retrieve comprehensive dashboard statistics including user counts, transfer volumes, revenue metrics, and pending KYC approvals.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Dashboard statistics retrieved successfully',
     example: {
       totalUsers: 1250,
@@ -57,7 +58,7 @@ export class AdminController {
   @Get('logs')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Dashboard')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get system activity logs',
     description: 'Retrieve system activity logs with pagination for monitoring user actions and system events.'
   })
@@ -77,12 +78,12 @@ export class AdminController {
   @Get('profile')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Dashboard')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get current admin profile',
     description: 'Get the current admin user profile with role-based permissions.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Admin profile retrieved successfully',
     example: {
       id: 'admin_123',
@@ -108,12 +109,12 @@ export class AdminController {
   @Get('users')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - User Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all users with pagination and filtering',
     description: 'Retrieve all registered users with advanced filtering by role, KYC status, and pagination support.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Users retrieved successfully',
     example: {
       users: [],
@@ -146,7 +147,7 @@ export class AdminController {
   @Put('users/:id/role')
   @Roles('SUPER_ADMIN')
   @ApiTags('Admin - User Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update user role (Super Admin only)',
     description: 'Change a user\'s role. Only Super Admin can perform this action.'
   })
@@ -177,7 +178,7 @@ export class AdminController {
   @Patch('users/:id/kyc')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - User Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update user KYC status',
     description: 'Approve, reject, or update KYC verification status for a user. Sends automatic notifications to the user.'
   })
@@ -216,7 +217,7 @@ export class AdminController {
   @Patch('users/:id/deactivate')
   @Roles('SUPER_ADMIN')
   @ApiTags('Admin - User Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Deactivate user account (Super Admin only)',
     description: 'Deactivate a user account, cancel pending transfers, and disable payment methods. Cannot deactivate Super Admin accounts.'
   })
@@ -233,12 +234,12 @@ export class AdminController {
   @Get('transfers')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Transfer Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all transfers with pagination and filtering',
     description: 'Retrieve all money transfers with filtering by status and pagination support for admin oversight.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Transfers retrieved successfully',
     example: {
       transfers: [],
@@ -252,11 +253,11 @@ export class AdminController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Page number' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20, description: 'Items per page (max 50)' })
-  @ApiQuery({ 
-    name: 'status', 
-    required: false, 
+  @ApiQuery({
+    name: 'status',
+    required: false,
     enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED'],
-    description: 'Filter by transfer status' 
+    description: 'Filter by transfer status'
   })
   async getAllTransfers(
     @Query('page') page?: number,
@@ -273,7 +274,7 @@ export class AdminController {
   @Patch('transfers/:id/status')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Transfer Management')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update transfer status',
     description: 'Manually update transfer status for administrative purposes. Sends notifications to users.'
   })
@@ -313,12 +314,12 @@ export class AdminController {
   @Get('exchange-rates')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Exchange Rates')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all exchange rates',
     description: 'Retrieve all currency exchange rates with buy/sell rates and last update timestamps.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Exchange rates retrieved successfully',
     example: [
       {
@@ -337,10 +338,30 @@ export class AdminController {
     return this.adminService.getAllExchangeRates();
   }
 
+  @Post('exchange-rates')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiTags('Admin - Exchange Rates')
+  @ApiOperation({
+    summary: 'Create new exchange rate',
+    description: 'Create a new currency exchange rate pair.'
+  })
+  @ApiResponse({ status: 201, description: 'Exchange rate created successfully' })
+  async createExchangeRate(@Body() createExchangeRateDto: CreateExchangeRateDto) {
+    return this.adminService.updateExchangeRate(
+      createExchangeRateDto.fromCurrency,
+      createExchangeRateDto.toCurrency,
+      {
+        rate: createExchangeRateDto.rate,
+        buyRate: createExchangeRateDto.buyRate,
+        sellRate: createExchangeRateDto.sellRate,
+      },
+    );
+  }
+
   @Put('exchange-rates/:fromCurrency/:toCurrency')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Exchange Rates')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update exchange rate manually',
     description: 'Manually set exchange rates for specific currency pairs. This will override automatic rates from external APIs.'
   })
@@ -373,7 +394,7 @@ export class AdminController {
   @Delete('exchange-rates/:fromCurrency/:toCurrency')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Exchange Rates')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Deactivate exchange rate',
     description: 'Deactivate an exchange rate pair. The system will fall back to default rates or external API rates.'
   })
@@ -390,12 +411,12 @@ export class AdminController {
   @Post('exchange-rates/refresh')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Exchange Rates')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Refresh exchange rates from external API',
     description: 'Force refresh all exchange rates from external API sources. This may take a few seconds to complete.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Exchange rates refreshed successfully',
     example: { message: 'Exchange rates updated successfully', updatedCount: 15 }
   })
@@ -407,12 +428,12 @@ export class AdminController {
   @Get('fee-configurations')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Fee Configuration')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all fee configurations',
     description: 'Retrieve all fee configuration settings including transfer fees, currency conversion fees, and payment processing fees.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Fee configurations retrieved successfully',
     example: [
       {
@@ -436,7 +457,7 @@ export class AdminController {
   @Post('fee-configurations')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Fee Configuration')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create new fee configuration',
     description: 'Create a new fee configuration for transfers, currency conversions, or payment processing.'
   })
@@ -445,8 +466,8 @@ export class AdminController {
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Fee configuration name', example: 'Card Processing Fee' },
-        type: { 
-          type: 'string', 
+        type: {
+          type: 'string',
           enum: ['TRANSFER_FEE', 'CURRENCY_CONVERSION_FEE', 'WITHDRAWAL_FEE', 'CARD_PROCESSING_FEE'],
           description: 'Type of fee'
         },
@@ -455,8 +476,8 @@ export class AdminController {
         minimumFee: { type: 'number', description: 'Minimum fee amount', example: 25 },
         maximumFee: { type: 'number', description: 'Maximum fee amount', example: 1000 },
         currency: { type: 'string', description: 'Currency code', example: 'NGN' },
-        applicableTo: { 
-          type: 'array', 
+        applicableTo: {
+          type: 'array',
           items: { type: 'string' },
           description: 'Applicable to types (DOMESTIC, INTERNATIONAL, CARD, BANK_TRANSFER)',
           example: ['DOMESTIC', 'BANK_TRANSFER']
@@ -484,7 +505,7 @@ export class AdminController {
   @Put('fee-configurations/:id')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Fee Configuration')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update fee configuration',
     description: 'Update an existing fee configuration. Changes take effect immediately for new transactions.'
   })
@@ -508,7 +529,7 @@ export class AdminController {
   @Delete('fee-configurations/:id')
   @Roles('SUPER_ADMIN')
   @ApiTags('Admin - Fee Configuration')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Delete fee configuration (Super Admin only)',
     description: 'Permanently delete a fee configuration. Use with caution - this action cannot be undone.'
   })
@@ -524,12 +545,12 @@ export class AdminController {
   @Get('system-settings')
   @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - System Settings')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get all system settings',
     description: 'Retrieve all system-wide configuration settings and their current values.'
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'System settings retrieved successfully',
     example: [
       {
@@ -549,7 +570,7 @@ export class AdminController {
   @Put('system-settings/:key')
   @Roles('SUPER_ADMIN')
   @ApiTags('Admin - System Settings')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Update system setting (Super Admin only)',
     description: 'Update a system-wide setting value. Changes may require application restart depending on the setting.'
   })
@@ -575,7 +596,7 @@ export class AdminController {
   @Post('system-settings')
   @Roles('SUPER_ADMIN')
   @ApiTags('Admin - System Settings')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Create new system setting (Super Admin only)',
     description: 'Create a new system-wide configuration setting.'
   })
@@ -586,8 +607,8 @@ export class AdminController {
         key: { type: 'string', description: 'Setting key (unique)', example: 'NEW_FEATURE_ENABLED' },
         value: { type: 'string', description: 'Setting value', example: 'true' },
         description: { type: 'string', description: 'Setting description', example: 'Enable new feature' },
-        type: { 
-          type: 'string', 
+        type: {
+          type: 'string',
           enum: ['STRING', 'NUMBER', 'BOOLEAN', 'JSON'],
           description: 'Value type',
           example: 'BOOLEAN'

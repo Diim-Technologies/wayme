@@ -10,7 +10,7 @@ const getTypeOrmConfig = (configService) => ({
     type: 'postgres',
     host: configService.get('DB_HOST') || 'localhost',
     port: parseInt(configService.get('DB_PORT') || '5432'),
-    username: configService.get('DB_USERNAME') || 'postgres',
+    username: configService.get('DB_USERNAME') || 'simeonuba',
     password: configService.get('DB_PASSWORD') || '',
     database: configService.get('DB_NAME') || 'wayame',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
@@ -18,20 +18,20 @@ const getTypeOrmConfig = (configService) => ({
     synchronize: false,
     logging: configService.get('NODE_ENV') === 'development',
     migrationsRun: false,
-    ssl: { rejectUnauthorized: false },
+    ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
 });
 exports.getTypeOrmConfig = getTypeOrmConfig;
 exports.default = new typeorm_1.DataSource({
     type: 'postgres',
     host: configService.get('DB_HOST') || 'localhost',
     port: parseInt(configService.get('DB_PORT') || '5432'),
-    username: configService.get('DB_USERNAME') || 'postgres',
+    username: configService.get('DB_USERNAME') || 'simeonuba',
     password: configService.get('DB_PASSWORD') || '',
     database: configService.get('DB_NAME') || 'wayame',
     entities: ['src/**/*.entity.ts'],
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
     logging: true,
-    ssl: { rejectUnauthorized: false },
+    ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
 });
 //# sourceMappingURL=typeorm.config.js.map

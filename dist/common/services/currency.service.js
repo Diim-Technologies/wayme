@@ -17,10 +17,8 @@ exports.CurrencyService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const schedule_1 = require("@nestjs/schedule");
 const decimal_js_1 = require("decimal.js");
 const entities_1 = require("../../entities");
-const https = require("https");
 let CurrencyService = CurrencyService_1 = class CurrencyService {
     constructor(exchangeRateRepository) {
         this.exchangeRateRepository = exchangeRateRepository;
@@ -28,84 +26,12 @@ let CurrencyService = CurrencyService_1 = class CurrencyService {
         this.supportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NGN'];
     }
     async updateExchangeRates() {
-        this.logger.log('Starting daily exchange rate update...');
-        try {
-            await this.fetchAndUpdateRates();
-            this.logger.log('Exchange rates updated successfully');
-        }
-        catch (error) {
-            this.logger.error('Failed to update exchange rates:', error);
-        }
+        this.logger.log('Automatic exchange rate updates are disabled. Please use admin panel to set rates manually.');
+        return;
     }
     async fetchAndUpdateRates() {
-        const apiKey = process.env.EXCHANGE_RATE_API_KEY || 'demo_key';
-        const baseUrl = `https://v6.exchangerate-api.com/v6/${apiKey}/latest`;
-        for (const baseCurrency of this.supportedCurrencies) {
-            try {
-                const rates = await this.fetchRatesForCurrency(baseUrl, baseCurrency);
-                await this.updateRatesInDatabase(baseCurrency, rates);
-            }
-            catch (error) {
-                this.logger.error(`Failed to fetch rates for ${baseCurrency}:`, error);
-            }
-        }
-    }
-    async fetchRatesForCurrency(baseUrl, baseCurrency) {
-        return new Promise((resolve, reject) => {
-            const url = `${baseUrl}/${baseCurrency}`;
-            https.get(url, (response) => {
-                let data = '';
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
-                response.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        if (parsed.result === 'success') {
-                            resolve(parsed.conversion_rates);
-                        }
-                        else {
-                            reject(new Error(`API Error: ${parsed.error_type}`));
-                        }
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                });
-            }).on('error', (error) => {
-                reject(error);
-            });
-        });
-    }
-    async updateRatesInDatabase(fromCurrency, rates) {
-        for (const [toCurrency, rate] of Object.entries(rates)) {
-            if (!this.supportedCurrencies.includes(toCurrency))
-                continue;
-            try {
-                let exchangeRate = await this.exchangeRateRepository.findOne({
-                    where: { fromCurrency, toCurrency },
-                });
-                if (exchangeRate) {
-                    await this.exchangeRateRepository.update({ fromCurrency, toCurrency }, {
-                        rate: rate,
-                        updatedAt: new Date(),
-                    });
-                }
-                else {
-                    exchangeRate = this.exchangeRateRepository.create({
-                        fromCurrency,
-                        toCurrency,
-                        rate: rate,
-                        provider: 'EXTERNAL_API',
-                    });
-                    await this.exchangeRateRepository.save(exchangeRate);
-                }
-                this.logger.log(`Rate updated: ${fromCurrency}/${toCurrency} = ${rate}`);
-            }
-            catch (error) {
-                this.logger.error(`Failed to update ${fromCurrency}/${toCurrency} rate:`, error);
-            }
-        }
+        this.logger.log('Exchange rate fetching from external API is disabled. Using admin-configured rates only.');
+        return;
     }
     async getExchangeRate(fromCurrency, toCurrency, type = 'mid') {
         if (fromCurrency === toCurrency) {
@@ -122,6 +48,7 @@ let CurrencyService = CurrencyService_1 = class CurrencyService {
                 if (reverseRate) {
                     return new decimal_js_1.Decimal(1).div(reverseRate.rate);
                 }
+                this.logger.warn(`No exchange rate found for ${fromCurrency}/${toCurrency}. Using fallback rate. Please set rate via admin panel.`);
                 const fallbackRates = {
                     'NGN_USD': 0.0012,
                     'NGN_GBP': 0.001,
@@ -177,12 +104,6 @@ let CurrencyService = CurrencyService_1 = class CurrencyService {
     }
 };
 exports.CurrencyService = CurrencyService;
-__decorate([
-    (0, schedule_1.Cron)(schedule_1.CronExpression.EVERY_DAY_AT_6AM),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], CurrencyService.prototype, "updateExchangeRates", null);
 exports.CurrencyService = CurrencyService = CurrencyService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(entities_1.ExchangeRate)),
