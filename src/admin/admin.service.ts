@@ -128,8 +128,18 @@ export class AdminService {
       this.transferRepository.count({ where }),
     ]);
 
+    // Sanitize to remove circular references
+    const sanitizedTransfers = transfers.map(transfer => {
+      if (transfer.transactions) {
+        transfer.transactions.forEach(transaction => {
+          delete (transaction as any).transfer;
+        });
+      }
+      return transfer;
+    });
+
     return {
-      transfers,
+      transfers: sanitizedTransfers,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

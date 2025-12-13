@@ -1,4 +1,8 @@
 import { TransferStatus } from '../enums/common.enum';
+import { Transaction } from './transaction.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { User } from './user.entity';
+import { Bank } from './bank.entity';
 export declare class Transfer {
     id: string;
     senderId: string;
@@ -21,9 +25,9 @@ export declare class Transfer {
     completedAt: Date;
     createdAt: Date;
     updatedAt: Date;
-    transactions: any[];
-    paymentMethod: any;
-    receiver: any;
-    recipientBank: any;
-    sender: any;
+    transactions: Transaction[];
+    paymentMethod: PaymentMethod;
+    receiver: User;
+    recipientBank: Bank;
+    sender: User;
 }

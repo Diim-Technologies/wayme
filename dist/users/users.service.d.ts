@@ -34,7 +34,35 @@ export declare class UsersService {
         updatedAt: Date;
     }>;
     getTransferHistory(userId: string, page?: number, limit?: number): Promise<{
-        transfers: any[];
+        transfers: {
+            type: string;
+            id: string;
+            senderId: string;
+            receiverId: string;
+            amount: number;
+            fee: number;
+            exchangeRate: number;
+            sourceCurrency: string;
+            targetCurrency: string;
+            purpose: string;
+            status: import("../enums/common.enum").TransferStatus;
+            reference: string;
+            paymentMethodId: string;
+            recipientBankId: string;
+            recipientAccount: string;
+            recipientName: string;
+            recipientPhone: string;
+            notes: string;
+            processedAt: Date;
+            completedAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            transactions: import("../entities").Transaction[];
+            paymentMethod: import("../entities").PaymentMethod;
+            receiver: User;
+            recipientBank: import("../entities").Bank;
+            sender: User;
+        }[];
         pagination: {
             currentPage: number;
             totalPages: number;

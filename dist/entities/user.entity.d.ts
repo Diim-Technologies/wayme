@@ -1,4 +1,10 @@
 import { UserRole, KycStatus } from '../enums/user.enum';
+import { Notification } from './notification.entity';
+import { OTP } from './otp.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { Transfer } from './transfer.entity';
+import { Beneficiary } from './beneficiary.entity';
+import { UserProfile } from './user-profile.entity';
 export declare class User {
     id: string;
     generateId(): void;
@@ -12,11 +18,11 @@ export declare class User {
     kycStatus: KycStatus;
     createdAt: Date;
     updatedAt: Date;
-    notifications: any[];
-    otps: any[];
-    paymentMethods: any[];
-    receivedTransfers: any[];
-    sentTransfers: any[];
-    beneficiaries: any[];
-    profile: any;
+    notifications: Notification[];
+    otps: OTP[];
+    paymentMethods: PaymentMethod[];
+    receivedTransfers: Transfer[];
+    sentTransfers: Transfer[];
+    beneficiaries: Beneficiary[];
+    profile: UserProfile;
 }

@@ -34,7 +34,35 @@ export declare class UsersController {
     }>;
     updateProfile(req: any, updateProfileDto: UpdateProfileDto): Promise<import("../entities").UserProfile>;
     getTransferHistory(req: any, page?: number, limit?: number, status?: string, type?: string): Promise<{
-        transfers: any[];
+        transfers: {
+            type: string;
+            id: string;
+            senderId: string;
+            receiverId: string;
+            amount: number;
+            fee: number;
+            exchangeRate: number;
+            sourceCurrency: string;
+            targetCurrency: string;
+            purpose: string;
+            status: import("../enums/common.enum").TransferStatus;
+            reference: string;
+            paymentMethodId: string;
+            recipientBankId: string;
+            recipientAccount: string;
+            recipientName: string;
+            recipientPhone: string;
+            notes: string;
+            processedAt: Date;
+            completedAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            transactions: import("../entities").Transaction[];
+            paymentMethod: import("../entities").PaymentMethod;
+            receiver: import("../entities").User;
+            recipientBank: import("../entities").Bank;
+            sender: import("../entities").User;
+        }[];
         pagination: {
             currentPage: number;
             totalPages: number;

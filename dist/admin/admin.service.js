@@ -117,8 +117,16 @@ let AdminService = class AdminService {
             }),
             this.transferRepository.count({ where }),
         ]);
+        const sanitizedTransfers = transfers.map(transfer => {
+            if (transfer.transactions) {
+                transfer.transactions.forEach(transaction => {
+                    delete transaction.transfer;
+                });
+            }
+            return transfer;
+        });
         return {
-            transfers,
+            transfers: sanitizedTransfers,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),

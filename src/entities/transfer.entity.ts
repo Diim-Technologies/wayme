@@ -10,6 +10,10 @@ import {
   Index,
 } from 'typeorm';
 import { TransferStatus } from '../enums/common.enum';
+import { Transaction } from './transaction.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { User } from './user.entity';
+import { Bank } from './bank.entity';
 
 @Entity('transfers')
 export class Transfer {
@@ -84,22 +88,22 @@ export class Transfer {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany('Transaction', 'transfer')
-  transactions: any[];
+  @OneToMany(() => Transaction, (transaction) => transaction.transfer)
+  transactions: Transaction[];
 
-  @ManyToOne('PaymentMethod', 'transfers')
+  @ManyToOne(() => PaymentMethod, (paymentMethod) => paymentMethod.transfers)
   @JoinColumn({ name: 'paymentMethodId' })
-  paymentMethod: any;
+  paymentMethod: PaymentMethod;
 
-  @ManyToOne('User', 'receivedTransfers', { nullable: true })
+  @ManyToOne(() => User, (user) => user.receivedTransfers, { nullable: true })
   @JoinColumn({ name: 'receiverId' })
-  receiver: any;
+  receiver: User;
 
-  @ManyToOne('Bank', 'transfers', { nullable: true })
+  @ManyToOne(() => Bank, (bank) => bank.transfers, { nullable: true })
   @JoinColumn({ name: 'recipientBankId' })
-  recipientBank: any;
+  recipientBank: Bank;
 
-  @ManyToOne('User', 'sentTransfers')
+  @ManyToOne(() => User, (user) => user.sentTransfers)
   @JoinColumn({ name: 'senderId' })
-  sender: any;
+  sender: User;
 }

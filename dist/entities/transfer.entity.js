@@ -12,6 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Transfer = void 0;
 const typeorm_1 = require("typeorm");
 const common_enum_1 = require("../enums/common.enum");
+const transaction_entity_1 = require("./transaction.entity");
+const payment_method_entity_1 = require("./payment-method.entity");
+const user_entity_1 = require("./user.entity");
+const bank_entity_1 = require("./bank.entity");
 let Transfer = class Transfer {
 };
 exports.Transfer = Transfer;
@@ -108,28 +112,28 @@ __decorate([
     __metadata("design:type", Date)
 ], Transfer.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)('Transaction', 'transfer'),
+    (0, typeorm_1.OneToMany)(() => transaction_entity_1.Transaction, (transaction) => transaction.transfer),
     __metadata("design:type", Array)
 ], Transfer.prototype, "transactions", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)('PaymentMethod', 'transfers'),
+    (0, typeorm_1.ManyToOne)(() => payment_method_entity_1.PaymentMethod, (paymentMethod) => paymentMethod.transfers),
     (0, typeorm_1.JoinColumn)({ name: 'paymentMethodId' }),
-    __metadata("design:type", Object)
+    __metadata("design:type", payment_method_entity_1.PaymentMethod)
 ], Transfer.prototype, "paymentMethod", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)('User', 'receivedTransfers', { nullable: true }),
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (user) => user.receivedTransfers, { nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'receiverId' }),
-    __metadata("design:type", Object)
+    __metadata("design:type", user_entity_1.User)
 ], Transfer.prototype, "receiver", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)('Bank', 'transfers', { nullable: true }),
+    (0, typeorm_1.ManyToOne)(() => bank_entity_1.Bank, (bank) => bank.transfers, { nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'recipientBankId' }),
-    __metadata("design:type", Object)
+    __metadata("design:type", bank_entity_1.Bank)
 ], Transfer.prototype, "recipientBank", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)('User', 'sentTransfers'),
+    (0, typeorm_1.ManyToOne)(() => user_entity_1.User, (user) => user.sentTransfers),
     (0, typeorm_1.JoinColumn)({ name: 'senderId' }),
-    __metadata("design:type", Object)
+    __metadata("design:type", user_entity_1.User)
 ], Transfer.prototype, "sender", void 0);
 exports.Transfer = Transfer = __decorate([
     (0, typeorm_1.Entity)('transfers')

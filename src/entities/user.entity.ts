@@ -11,6 +11,12 @@ import {
 } from 'typeorm';
 import { UserRole, KycStatus } from '../enums/user.enum';
 import { randomUUID } from 'crypto';
+import { Notification } from './notification.entity';
+import { OTP } from './otp.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { Transfer } from './transfer.entity';
+import { Beneficiary } from './beneficiary.entity';
+import { UserProfile } from './user-profile.entity';
 
 @Entity('users')
 export class User {
@@ -64,24 +70,24 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany('Notification', 'user')
-  notifications: any[];
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 
-  @OneToMany('OTP', 'user')
-  otps: any[];
+  @OneToMany(() => OTP, (otp) => otp.user)
+  otps: OTP[];
 
-  @OneToMany('PaymentMethod', 'user')
-  paymentMethods: any[];
+  @OneToMany(() => PaymentMethod, (paymentMethod) => paymentMethod.user)
+  paymentMethods: PaymentMethod[];
 
-  @OneToMany('Transfer', 'receiver')
-  receivedTransfers: any[];
+  @OneToMany(() => Transfer, (transfer) => transfer.receiver)
+  receivedTransfers: Transfer[];
 
-  @OneToMany('Transfer', 'sender')
-  sentTransfers: any[];
+  @OneToMany(() => Transfer, (transfer) => transfer.sender)
+  sentTransfers: Transfer[];
 
-  @OneToMany('Beneficiary', 'user')
-  beneficiaries: any[];
+  @OneToMany(() => Beneficiary, (beneficiary) => beneficiary.user)
+  beneficiaries: Beneficiary[];
 
-  @OneToOne('UserProfile', 'user')
-  profile: any;
+  @OneToOne(() => UserProfile, (profile) => profile.user)
+  profile: UserProfile;
 }
