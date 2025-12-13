@@ -118,8 +118,8 @@ export class AdminService {
         where,
         relations: ['sender', 'receiver', 'recipientBank', 'transactions'],
         select: {
-          sender: { firstName: true, lastName: true, email: true },
-          receiver: { firstName: true, lastName: true, email: true },
+          sender: { id: true, firstName: true, lastName: true, email: true },
+          receiver: { id: true, firstName: true, lastName: true, email: true },
         },
         order: { createdAt: 'DESC' },
         skip,
