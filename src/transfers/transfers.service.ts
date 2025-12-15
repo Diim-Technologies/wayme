@@ -178,7 +178,9 @@ export class TransfersService {
             .take(limit);
 
         if (status) {
-            queryBuilder.andWhere('transfer.status = :status', { status });
+            // Normalize status to uppercase to handle case-insensitive input
+            const normalizedStatus = status.toString().toUpperCase();
+            queryBuilder.andWhere('transfer.status = :status', { status: normalizedStatus });
         }
 
         const [transfers, total] = await queryBuilder.getManyAndCount();

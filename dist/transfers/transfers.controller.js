@@ -32,11 +32,11 @@ let TransfersController = class TransfersController {
     async proceedToTransfer(req, dto) {
         return this.transfersService.proceedToTransfer(req.user.userId, dto);
     }
-    async getTransferByReference(req, reference) {
-        return this.transfersService.getTransferByReference(reference, req.user.userId);
-    }
     async getUserTransfers(req, page = 1, limit = 10, status) {
         return this.transfersService.getUserTransfers(req.user.userId, Number(page), Number(limit), status);
+    }
+    async getTransferByReference(req, reference) {
+        return this.transfersService.getTransferByReference(reference, req.user.userId);
     }
     async approveTransfer(req, id, dto) {
         return this.transfersService.approveTransfer(id, req.user.userId, dto.notes);
@@ -65,19 +65,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TransfersController.prototype, "proceedToTransfer", null);
 __decorate([
-    (0, common_1.Get)(':reference'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, swagger_1.ApiBearerAuth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get transfer by reference ID' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Transfer found' }),
-    (0, swagger_1.ApiResponse)({ status: 404, description: 'Transfer not found' }),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Param)('reference')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
-    __metadata("design:returntype", Promise)
-], TransfersController.prototype, "getTransferByReference", null);
-__decorate([
     (0, common_1.Get)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
@@ -91,6 +78,19 @@ __decorate([
     __metadata("design:paramtypes", [Object, Number, Number, String]),
     __metadata("design:returntype", Promise)
 ], TransfersController.prototype, "getUserTransfers", null);
+__decorate([
+    (0, common_1.Get)(':reference'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Get transfer by reference ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Transfer found' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Transfer not found' }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('reference')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], TransfersController.prototype, "getTransferByReference", null);
 __decorate([
     (0, common_1.Patch)(':id/approve'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),

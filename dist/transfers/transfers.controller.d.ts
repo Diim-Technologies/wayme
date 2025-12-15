@@ -6,7 +6,6 @@ export declare class TransfersController {
     constructor(transfersService: TransfersService);
     getQuote(dto: TransferQuoteDto): Promise<TransferQuoteResponseDto>;
     proceedToTransfer(req: any, dto: CreateTransferDto): Promise<ProceedToTransferResponseDto>;
-    getTransferByReference(req: any, reference: string): Promise<import("../entities").Transfer>;
     getUserTransfers(req: any, page?: number, limit?: number, status?: string): Promise<{
         data: import("../entities").Transfer[];
         total: number;
@@ -14,5 +13,6 @@ export declare class TransfersController {
         limit: number;
         totalPages: number;
     }>;
+    getTransferByReference(req: any, reference: string): Promise<import("../entities").Transfer>;
     approveTransfer(req: any, id: string, dto: ApproveTransferDto): Promise<import("../entities").Transfer>;
 }

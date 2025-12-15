@@ -133,7 +133,8 @@ let TransfersService = TransfersService_1 = class TransfersService {
             .skip(skip)
             .take(limit);
         if (status) {
-            queryBuilder.andWhere('transfer.status = :status', { status });
+            const normalizedStatus = status.toString().toUpperCase();
+            queryBuilder.andWhere('transfer.status = :status', { status: normalizedStatus });
         }
         const [transfers, total] = await queryBuilder.getManyAndCount();
         return {
