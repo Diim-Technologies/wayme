@@ -42,19 +42,6 @@ export class TransfersController {
         return this.transfersService.proceedToTransfer(req.user.userId, dto);
     }
 
-    @Get(':reference')
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    @ApiOperation({ summary: 'Get transfer by reference ID' })
-    @ApiResponse({ status: 200, description: 'Transfer found' })
-    @ApiResponse({ status: 404, description: 'Transfer not found' })
-    async getTransferByReference(
-        @Request() req,
-        @Param('reference') reference: string,
-    ) {
-        return this.transfersService.getTransferByReference(reference, req.user.userId);
-    }
-
     @Get()
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()
@@ -72,6 +59,19 @@ export class TransfersController {
             Number(limit),
             status as any,
         );
+    }
+
+    @Get(':reference')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get transfer by reference ID' })
+    @ApiResponse({ status: 200, description: 'Transfer found' })
+    @ApiResponse({ status: 404, description: 'Transfer not found' })
+    async getTransferByReference(
+        @Request() req,
+        @Param('reference') reference: string,
+    ) {
+        return this.transfersService.getTransferByReference(reference, req.user.userId);
     }
 
     @Patch(':id/approve')
