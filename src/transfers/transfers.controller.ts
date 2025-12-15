@@ -39,7 +39,7 @@ export class TransfersController {
         @Request() req,
         @Body() dto: CreateTransferDto,
     ): Promise<ProceedToTransferResponseDto> {
-        return this.transfersService.proceedToTransfer(req.user.userId, dto);
+        return this.transfersService.proceedToTransfer(req.user.id, dto);
     }
 
     @Get()
@@ -53,8 +53,9 @@ export class TransfersController {
         @Query('limit') limit: number = 10,
         @Query('status') status?: string,
     ) {
+        console.log('Authenticated user from JWT:', req.user);
         return this.transfersService.getUserTransfers(
-            req.user.userId,
+            req.user.id,  // Fixed: was req.user.userId, should be req.user.id
             Number(page),
             Number(limit),
             status as any,
@@ -71,7 +72,7 @@ export class TransfersController {
         @Request() req,
         @Param('reference') reference: string,
     ) {
-        return this.transfersService.getTransferByReference(reference, req.user.userId);
+        return this.transfersService.getTransferByReference(reference, req.user.id);
     }
 
     @Patch(':id/approve')
@@ -86,6 +87,6 @@ export class TransfersController {
         @Param('id') id: string,
         @Body() dto: ApproveTransferDto,
     ) {
-        return this.transfersService.approveTransfer(id, req.user.userId, dto.notes);
+        return this.transfersService.approveTransfer(id, req.user.id, dto.notes);
     }
 }

@@ -29,7 +29,7 @@ export class PaymentsController {
     @Request() req,
     @Body() dto: CreatePaymentDto,
   ): Promise<PaymentIntentResponseDto> {
-    return this.paymentsService.createPaymentIntent(req.user.userId, dto);
+    return this.paymentsService.createPaymentIntent(req.user.id, dto);
   }
 
   @Get('methods')

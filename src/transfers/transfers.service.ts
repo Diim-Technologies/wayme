@@ -167,6 +167,8 @@ export class TransfersService {
         limit: number = 10,
         status?: TransferStatus,
     ) {
+        this.logger.log(`getUserTransfers called with userId: ${userId}, page: ${page}, limit: ${limit}, status: ${status}`);
+
         const skip = (page - 1) * limit;
 
         const queryBuilder = this.transferRepository
@@ -184,6 +186,8 @@ export class TransfersService {
         }
 
         const [transfers, total] = await queryBuilder.getManyAndCount();
+
+        this.logger.log(`Found ${total} transfers for user ${userId}`);
 
         return {
             data: transfers,
