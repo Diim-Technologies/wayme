@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreateExchangeRateDto = exports.AdminStatsDto = exports.UpdateTransferStatusDto = exports.UpdateKycStatusDto = exports.UpdateUserRoleDto = void 0;
+exports.CreateAdminUserDto = exports.CreateExchangeRateDto = exports.AdminStatsDto = exports.UpdateTransferStatusDto = exports.UpdateKycStatusDto = exports.UpdateUserRoleDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 class UpdateUserRoleDto {
@@ -81,4 +81,65 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateExchangeRateDto.prototype, "sellRate", void 0);
+class CreateAdminUserDto {
+}
+exports.CreateAdminUserDto = CreateAdminUserDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'admin@wayame.com',
+        description: 'Admin user email address'
+    }),
+    (0, class_validator_1.IsEmail)({}, { message: 'Please provide a valid email address' }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'John',
+        description: 'Admin user first name'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2, { message: 'First name must be at least 2 characters long' }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "firstName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'Doe',
+        description: 'Admin user last name'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2, { message: 'Last name must be at least 2 characters long' }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "lastName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: '+2348012345678',
+        description: 'Admin user phone number (international format)'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\+?[1-9]\d{1,14}$/, {
+        message: 'Please provide a valid phone number in international format'
+    }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "phoneNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'SecurePass123!',
+        description: 'Admin user password (min 8 characters, must include uppercase, lowercase, number, and special character)'
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(8, { message: 'Password must be at least 8 characters long' }),
+    (0, class_validator_1.Matches)(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, { message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character' }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "password", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: 'ADMIN',
+        enum: ['ADMIN', 'SUPER_ADMIN'],
+        description: 'Role to assign to the admin user'
+    }),
+    (0, class_validator_1.IsEnum)(['ADMIN', 'SUPER_ADMIN'], {
+        message: 'Role must be either ADMIN or SUPER_ADMIN'
+    }),
+    __metadata("design:type", String)
+], CreateAdminUserDto.prototype, "role", void 0);
 //# sourceMappingURL=admin.dto.js.map

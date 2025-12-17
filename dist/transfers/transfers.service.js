@@ -124,6 +124,7 @@ let TransfersService = TransfersService_1 = class TransfersService {
         return transfer;
     }
     async getUserTransfers(userId, page = 1, limit = 10, status) {
+        this.logger.log(`getUserTransfers called with userId: ${userId}, page: ${page}, limit: ${limit}, status: ${status}`);
         const skip = (page - 1) * limit;
         const queryBuilder = this.transferRepository
             .createQueryBuilder('transfer')
@@ -137,6 +138,7 @@ let TransfersService = TransfersService_1 = class TransfersService {
             queryBuilder.andWhere('transfer.status = :status', { status: normalizedStatus });
         }
         const [transfers, total] = await queryBuilder.getManyAndCount();
+        this.logger.log(`Found ${total} transfers for user ${userId}`);
         return {
             data: transfers,
             total,

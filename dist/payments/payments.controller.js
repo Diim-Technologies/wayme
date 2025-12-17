@@ -23,7 +23,7 @@ let PaymentsController = class PaymentsController {
         this.paymentsService = paymentsService;
     }
     async createPaymentIntent(req, dto) {
-        return this.paymentsService.createPaymentIntent(req.user.userId, dto);
+        return this.paymentsService.createPaymentIntent(req.user.id, dto);
     }
     async getAvailablePaymentMethods() {
         return this.paymentsService.getAvailablePaymentMethods();

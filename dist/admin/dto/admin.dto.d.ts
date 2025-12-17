@@ -25,3 +25,11 @@ export declare class CreateExchangeRateDto {
     buyRate?: number;
     sellRate?: number;
 }
+export declare class CreateAdminUserDto {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    password: string;
+    role: 'ADMIN' | 'SUPER_ADMIN';
+}

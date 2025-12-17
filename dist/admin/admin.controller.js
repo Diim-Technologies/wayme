@@ -46,6 +46,9 @@ let AdminController = class AdminController {
     async updateUserRole(userId, updateUserRoleDto) {
         return this.adminService.updateUserRole(userId, updateUserRoleDto);
     }
+    async createAdminUser(createAdminUserDto) {
+        return this.adminService.createAdminUser(createAdminUserDto);
+    }
     async updateKycStatus(userId, updateKycStatusDto) {
         return this.adminService.updateKycStatus(userId, updateKycStatusDto.kycStatus, updateKycStatusDto.reason);
     }
@@ -262,6 +265,65 @@ __decorate([
     __metadata("design:paramtypes", [String, admin_dto_1.UpdateUserRoleDto]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "updateUserRole", null);
+__decorate([
+    (0, common_1.Post)('users/create-admin'),
+    (0, roles_decorator_1.Roles)('SUPER_ADMIN'),
+    (0, swagger_1.ApiTags)('Admin - User Management'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Create new admin user (Super Admin only)',
+        description: 'Create a new user with ADMIN or SUPER_ADMIN role. The created user will be automatically verified and KYC approved. Only Super Admin can perform this action.'
+    }),
+    (0, swagger_1.ApiBody)({
+        type: admin_dto_1.CreateAdminUserDto,
+        examples: {
+            admin: {
+                summary: 'Create Admin User',
+                value: {
+                    email: 'admin@wayame.com',
+                    firstName: 'John',
+                    lastName: 'Admin',
+                    phoneNumber: '+2348012345678',
+                    password: 'SecurePass123!',
+                    role: 'ADMIN'
+                }
+            },
+            superAdmin: {
+                summary: 'Create Super Admin User',
+                value: {
+                    email: 'superadmin@wayame.com',
+                    firstName: 'Jane',
+                    lastName: 'SuperAdmin',
+                    phoneNumber: '+2348087654321',
+                    password: 'SuperSecure456!',
+                    role: 'SUPER_ADMIN'
+                }
+            }
+        }
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: 'Admin user created successfully',
+        example: {
+            id: 'user_abc123',
+            email: 'admin@wayame.com',
+            firstName: 'John',
+            lastName: 'Admin',
+            phoneNumber: '+2348012345678',
+            role: 'ADMIN',
+            isVerified: true,
+            kycStatus: 'APPROVED',
+            createdAt: '2024-12-17T10:30:00Z',
+            updatedAt: '2024-12-17T10:30:00Z'
+        }
+    }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Validation error - invalid input data' }),
+    (0, swagger_1.ApiResponse)({ status: 409, description: 'Conflict - email or phone number already exists' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Insufficient permissions - Super Admin role required' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [admin_dto_1.CreateAdminUserDto]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "createAdminUser", null);
 __decorate([
     (0, common_1.Patch)('users/:id/kyc'),
     (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),
@@ -579,7 +641,7 @@ __decorate([
 ], AdminController.prototype, "updateFeeConfiguration", null);
 __decorate([
     (0, common_1.Delete)('fee-configurations/:id'),
-    (0, roles_decorator_1.Roles)('SUPER_ADMIN'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),
     (0, swagger_1.ApiTags)('Admin - Fee Configuration'),
     (0, swagger_1.ApiOperation)({
         summary: 'Delete fee configuration (Super Admin only)',
@@ -622,7 +684,7 @@ __decorate([
 ], AdminController.prototype, "getSystemSettings", null);
 __decorate([
     (0, common_1.Put)('system-settings/:key'),
-    (0, roles_decorator_1.Roles)('SUPER_ADMIN'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),
     (0, swagger_1.ApiTags)('Admin - System Settings'),
     (0, swagger_1.ApiOperation)({
         summary: 'Update system setting (Super Admin only)',
@@ -648,7 +710,7 @@ __decorate([
 ], AdminController.prototype, "updateSystemSetting", null);
 __decorate([
     (0, common_1.Post)('system-settings'),
-    (0, roles_decorator_1.Roles)('SUPER_ADMIN'),
+    (0, roles_decorator_1.Roles)('ADMIN', 'SUPER_ADMIN'),
     (0, swagger_1.ApiTags)('Admin - System Settings'),
     (0, swagger_1.ApiOperation)({
         summary: 'Create new system setting (Super Admin only)',

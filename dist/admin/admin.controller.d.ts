@@ -1,5 +1,5 @@
 import { AdminService } from './admin.service';
-import { UpdateUserRoleDto, UpdateKycStatusDto, UpdateTransferStatusDto, CreateExchangeRateDto } from './dto/admin.dto';
+import { UpdateUserRoleDto, UpdateKycStatusDto, UpdateTransferStatusDto, CreateExchangeRateDto, CreateAdminUserDto } from './dto/admin.dto';
 export declare class AdminController {
     private adminService;
     constructor(adminService: AdminService);
@@ -36,6 +36,25 @@ export declare class AdminController {
         };
     }>;
     updateUserRole(userId: string, updateUserRoleDto: UpdateUserRoleDto): Promise<import("../entities").User>;
+    createAdminUser(createAdminUserDto: CreateAdminUserDto): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        phoneNumber: string;
+        role: import("../enums/user.enum").UserRole;
+        isVerified: boolean;
+        kycStatus: import("../enums/user.enum").KycStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        notifications: import("../entities").Notification[];
+        otps: import("../entities").OTP[];
+        paymentMethods: import("../entities").PaymentMethod[];
+        receivedTransfers: import("../entities").Transfer[];
+        sentTransfers: import("../entities").Transfer[];
+        beneficiaries: import("../entities").Beneficiary[];
+        profile: import("../entities").UserProfile;
+    }>;
     updateKycStatus(userId: string, updateKycStatusDto: UpdateKycStatusDto): Promise<import("../entities").User>;
     deactivateUser(userId: string): Promise<{
         message: string;

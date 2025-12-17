@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsNumber, IsEmail, MinLength, Matches } from 'class-validator';
 
 export class UpdateUserRoleDto {
   @ApiProperty({ example: 'ADMIN', enum: ['USER', 'ADMIN', 'SUPER_ADMIN'] })
@@ -61,4 +61,61 @@ export class CreateExchangeRateDto {
   @IsOptional()
   @IsNumber()
   sellRate?: number;
+}
+
+export class CreateAdminUserDto {
+  @ApiProperty({
+    example: 'admin@wayame.com',
+    description: 'Admin user email address'
+  })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
+  email: string;
+
+  @ApiProperty({
+    example: 'John',
+    description: 'Admin user first name'
+  })
+  @IsString()
+  @MinLength(2, { message: 'First name must be at least 2 characters long' })
+  firstName: string;
+
+  @ApiProperty({
+    example: 'Doe',
+    description: 'Admin user last name'
+  })
+  @IsString()
+  @MinLength(2, { message: 'Last name must be at least 2 characters long' })
+  lastName: string;
+
+  @ApiProperty({
+    example: '+2348012345678',
+    description: 'Admin user phone number (international format)'
+  })
+  @IsString()
+  @Matches(/^\+?[1-9]\d{1,14}$/, {
+    message: 'Please provide a valid phone number in international format'
+  })
+  phoneNumber: string;
+
+  @ApiProperty({
+    example: 'SecurePass123!',
+    description: 'Admin user password (min 8 characters, must include uppercase, lowercase, number, and special character)'
+  })
+  @IsString()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+    { message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character' }
+  )
+  password: string;
+
+  @ApiProperty({
+    example: 'ADMIN',
+    enum: ['ADMIN', 'SUPER_ADMIN'],
+    description: 'Role to assign to the admin user'
+  })
+  @IsEnum(['ADMIN', 'SUPER_ADMIN'], {
+    message: 'Role must be either ADMIN or SUPER_ADMIN'
+  })
+  role: 'ADMIN' | 'SUPER_ADMIN';
 }

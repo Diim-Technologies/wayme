@@ -30,16 +30,17 @@ let TransfersController = class TransfersController {
         return this.transfersService.getTransferQuote(dto);
     }
     async proceedToTransfer(req, dto) {
-        return this.transfersService.proceedToTransfer(req.user.userId, dto);
+        return this.transfersService.proceedToTransfer(req.user.id, dto);
     }
     async getUserTransfers(req, page = 1, limit = 10, status) {
-        return this.transfersService.getUserTransfers(req.user.userId, Number(page), Number(limit), status);
+        console.log('Authenticated user from JWT:', req.user);
+        return this.transfersService.getUserTransfers(req.user.id, Number(page), Number(limit), status);
     }
     async getTransferByReference(req, reference) {
-        return this.transfersService.getTransferByReference(reference, req.user.userId);
+        return this.transfersService.getTransferByReference(reference, req.user.id);
     }
     async approveTransfer(req, id, dto) {
-        return this.transfersService.approveTransfer(id, req.user.userId, dto.notes);
+        return this.transfersService.approveTransfer(id, req.user.id, dto.notes);
     }
 };
 exports.TransfersController = TransfersController;

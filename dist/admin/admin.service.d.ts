@@ -1,6 +1,7 @@
 import { Repository, DataSource } from 'typeorm';
 import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
-import { UpdateUserRoleDto, AdminStatsDto } from './dto/admin.dto';
+import { UserRole, KycStatus } from '../enums/user.enum';
+import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
 export declare class AdminService {
@@ -36,6 +37,25 @@ export declare class AdminService {
         };
     }>;
     updateUserRole(userId: string, updateUserRoleDto: UpdateUserRoleDto): Promise<User>;
+    createAdminUser(createAdminUserDto: CreateAdminUserDto): Promise<{
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        phoneNumber: string;
+        role: UserRole;
+        isVerified: boolean;
+        kycStatus: KycStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        notifications: Notification[];
+        otps: import("../entities").OTP[];
+        paymentMethods: PaymentMethod[];
+        receivedTransfers: Transfer[];
+        sentTransfers: Transfer[];
+        beneficiaries: import("../entities").Beneficiary[];
+        profile: import("../entities").UserProfile;
+    }>;
     updateKycStatus(userId: string, kycStatus: string, reason?: string): Promise<User>;
     updateTransferStatus(transferId: string, status: string, reason?: string): Promise<Transfer>;
     approveTransfer(transferId: string): Promise<Transfer>;

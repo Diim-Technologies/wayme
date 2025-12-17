@@ -17,7 +17,8 @@ import {
   UpdateUserRoleDto,
   UpdateKycStatusDto,
   UpdateTransferStatusDto,
-  CreateExchangeRateDto
+  CreateExchangeRateDto,
+  CreateAdminUserDto
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -173,6 +174,63 @@ export class AdminController {
     @Body() updateUserRoleDto: UpdateUserRoleDto,
   ) {
     return this.adminService.updateUserRole(userId, updateUserRoleDto);
+  }
+
+  @Post('users/create-admin')
+  @Roles('SUPER_ADMIN')
+  @ApiTags('Admin - User Management')
+  @ApiOperation({
+    summary: 'Create new admin user (Super Admin only)',
+    description: 'Create a new user with ADMIN or SUPER_ADMIN role. The created user will be automatically verified and KYC approved. Only Super Admin can perform this action.'
+  })
+  @ApiBody({
+    type: CreateAdminUserDto,
+    examples: {
+      admin: {
+        summary: 'Create Admin User',
+        value: {
+          email: 'admin@wayame.com',
+          firstName: 'John',
+          lastName: 'Admin',
+          phoneNumber: '+2348012345678',
+          password: 'SecurePass123!',
+          role: 'ADMIN'
+        }
+      },
+      superAdmin: {
+        summary: 'Create Super Admin User',
+        value: {
+          email: 'superadmin@wayame.com',
+          firstName: 'Jane',
+          lastName: 'SuperAdmin',
+          phoneNumber: '+2348087654321',
+          password: 'SuperSecure456!',
+          role: 'SUPER_ADMIN'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Admin user created successfully',
+    example: {
+      id: 'user_abc123',
+      email: 'admin@wayame.com',
+      firstName: 'John',
+      lastName: 'Admin',
+      phoneNumber: '+2348012345678',
+      role: 'ADMIN',
+      isVerified: true,
+      kycStatus: 'APPROVED',
+      createdAt: '2024-12-17T10:30:00Z',
+      updatedAt: '2024-12-17T10:30:00Z'
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Validation error - invalid input data' })
+  @ApiResponse({ status: 409, description: 'Conflict - email or phone number already exists' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions - Super Admin role required' })
+  async createAdminUser(@Body() createAdminUserDto: CreateAdminUserDto) {
+    return this.adminService.createAdminUser(createAdminUserDto);
   }
 
   @Patch('users/:id/kyc')

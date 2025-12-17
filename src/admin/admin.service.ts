@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
 import { UserRole, KycStatus } from '../enums/user.enum';
 import { TransferStatus, NotificationType, TransactionStatus } from '../enums/common.enum';
-import { UpdateUserRoleDto, AdminStatsDto } from './dto/admin.dto';
+import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -174,6 +175,50 @@ export class AdminService {
         updatedAt: true,
       },
     });
+  }
+
+  async createAdminUser(createAdminUserDto: CreateAdminUserDto) {
+    const { email, firstName, lastName, phoneNumber, password, role } = createAdminUserDto;
+
+    // Check if email already exists
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (existingUserByEmail) {
+      throw new ConflictException('Email address is already registered');
+    }
+
+    // Check if phone number already exists
+    const existingUserByPhone = await this.userRepository.findOne({
+      where: { phoneNumber },
+    });
+
+    if (existingUserByPhone) {
+      throw new ConflictException('Phone number is already registered');
+    }
+
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create the admin user
+    const adminUser = this.userRepository.create({
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      password: hashedPassword,
+      role: role as UserRole,
+      isVerified: true, // Admin users are auto-verified
+      kycStatus: KycStatus.APPROVED, // Admin users are auto-approved
+    });
+
+    const savedUser = await this.userRepository.save(adminUser);
+
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = savedUser;
+    return userWithoutPassword;
   }
 
   async updateKycStatus(userId: string, kycStatus: string, reason?: string) {

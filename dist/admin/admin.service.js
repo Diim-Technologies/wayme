@@ -21,6 +21,7 @@ const user_enum_1 = require("../enums/user.enum");
 const common_enum_1 = require("../enums/common.enum");
 const currency_service_1 = require("../common/services/currency.service");
 const fee_service_1 = require("../common/services/fee.service");
+const bcrypt = require("bcrypt");
 let AdminService = class AdminService {
     constructor(userRepository, transferRepository, transactionRepository, paymentMethodRepository, bankRepository, feeRepository, currencyRepository, notificationRepository, dataSource, currencyService, feeService) {
         this.userRepository = userRepository;
@@ -156,6 +157,36 @@ let AdminService = class AdminService {
                 updatedAt: true,
             },
         });
+    }
+    async createAdminUser(createAdminUserDto) {
+        const { email, firstName, lastName, phoneNumber, password, role } = createAdminUserDto;
+        const existingUserByEmail = await this.userRepository.findOne({
+            where: { email },
+        });
+        if (existingUserByEmail) {
+            throw new common_1.ConflictException('Email address is already registered');
+        }
+        const existingUserByPhone = await this.userRepository.findOne({
+            where: { phoneNumber },
+        });
+        if (existingUserByPhone) {
+            throw new common_1.ConflictException('Phone number is already registered');
+        }
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const adminUser = this.userRepository.create({
+            email,
+            firstName,
+            lastName,
+            phoneNumber,
+            password: hashedPassword,
+            role: role,
+            isVerified: true,
+            kycStatus: user_enum_1.KycStatus.APPROVED,
+        });
+        const savedUser = await this.userRepository.save(adminUser);
+        const { password: _, ...userWithoutPassword } = savedUser;
+        return userWithoutPassword;
     }
     async updateKycStatus(userId, kycStatus, reason) {
         const user = await this.userRepository.findOne({
