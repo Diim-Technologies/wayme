@@ -527,7 +527,7 @@ export class AdminController {
   }
 
   @Delete('fee-configurations/:id')
-  @Roles('SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - Fee Configuration')
   @ApiOperation({
     summary: 'Delete fee configuration (Super Admin only)',
@@ -568,7 +568,7 @@ export class AdminController {
   }
 
   @Put('system-settings/:key')
-  @Roles('SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - System Settings')
   @ApiOperation({
     summary: 'Update system setting (Super Admin only)',
@@ -594,7 +594,7 @@ export class AdminController {
   }
 
   @Post('system-settings')
-  @Roles('SUPER_ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiTags('Admin - System Settings')
   @ApiOperation({
     summary: 'Create new system setting (Super Admin only)',
