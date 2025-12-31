@@ -21,6 +21,7 @@ const user_enum_1 = require("../enums/user.enum");
 const common_enum_1 = require("../enums/common.enum");
 const currency_service_1 = require("../common/services/currency.service");
 const fee_service_1 = require("../common/services/fee.service");
+const decimal_js_1 = require("decimal.js");
 const bcrypt = require("bcrypt");
 let AdminService = class AdminService {
     constructor(userRepository, transferRepository, transactionRepository, paymentMethodRepository, bankRepository, feeRepository, currencyRepository, notificationRepository, dataSource, currencyService, feeService) {
@@ -127,7 +128,10 @@ let AdminService = class AdminService {
             return transfer;
         });
         return {
-            transfers: sanitizedTransfers,
+            transfers: sanitizedTransfers.map(t => ({
+                ...t,
+                convertedAmount: new decimal_js_1.Decimal(t.amount).mul(t.exchangeRate || 0).toNumber(),
+            })),
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(total / limit),

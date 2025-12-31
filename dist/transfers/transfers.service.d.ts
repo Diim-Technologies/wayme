@@ -18,7 +18,35 @@ export declare class TransfersService {
     getTransferByReference(reference: string, userId?: string): Promise<Transfer>;
     getTransferById(id: string): Promise<Transfer>;
     getUserTransfers(userId: string, page?: number, limit?: number, status?: TransferStatus): Promise<{
-        data: Transfer[];
+        data: {
+            convertedAmount: number;
+            id: string;
+            senderId: string;
+            receiverId: string;
+            amount: number;
+            fee: number;
+            exchangeRate: number;
+            sourceCurrency: string;
+            targetCurrency: string;
+            purpose: string;
+            status: TransferStatus;
+            reference: string;
+            paymentMethodId: string;
+            recipientBankId: string;
+            recipientAccount: string;
+            recipientName: string;
+            recipientPhone: string;
+            notes: string;
+            processedAt: Date;
+            completedAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            transactions: import("../entities").Transaction[];
+            paymentMethod: import("../entities").PaymentMethod;
+            receiver: User;
+            recipientBank: import("../entities").Bank;
+            sender: User;
+        }[];
         total: number;
         page: number;
         limit: number;

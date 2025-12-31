@@ -7,7 +7,35 @@ export declare class TransfersController {
     getQuote(dto: TransferQuoteDto): Promise<TransferQuoteResponseDto>;
     proceedToTransfer(req: any, dto: CreateTransferDto): Promise<ProceedToTransferResponseDto>;
     getUserTransfers(req: any, page?: number, limit?: number, status?: string): Promise<{
-        data: import("../entities").Transfer[];
+        data: {
+            convertedAmount: number;
+            id: string;
+            senderId: string;
+            receiverId: string;
+            amount: number;
+            fee: number;
+            exchangeRate: number;
+            sourceCurrency: string;
+            targetCurrency: string;
+            purpose: string;
+            status: import("../enums/common.enum").TransferStatus;
+            reference: string;
+            paymentMethodId: string;
+            recipientBankId: string;
+            recipientAccount: string;
+            recipientName: string;
+            recipientPhone: string;
+            notes: string;
+            processedAt: Date;
+            completedAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            transactions: import("../entities").Transaction[];
+            paymentMethod: import("../entities").PaymentMethod;
+            receiver: import("../entities").User;
+            recipientBank: import("../entities").Bank;
+            sender: import("../entities").User;
+        }[];
         total: number;
         page: number;
         limit: number;

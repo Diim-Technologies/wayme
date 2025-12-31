@@ -1,6 +1,7 @@
 import { Repository, DataSource } from 'typeorm';
 import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
 import { UserRole, KycStatus } from '../enums/user.enum';
+import { TransferStatus } from '../enums/common.enum';
 import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
@@ -28,7 +29,35 @@ export declare class AdminService {
         };
     }>;
     getAllTransfers(page?: number, limit?: number, status?: string): Promise<{
-        transfers: Transfer[];
+        transfers: {
+            convertedAmount: number;
+            id: string;
+            senderId: string;
+            receiverId: string;
+            amount: number;
+            fee: number;
+            exchangeRate: number;
+            sourceCurrency: string;
+            targetCurrency: string;
+            purpose: string;
+            status: TransferStatus;
+            reference: string;
+            paymentMethodId: string;
+            recipientBankId: string;
+            recipientAccount: string;
+            recipientName: string;
+            recipientPhone: string;
+            notes: string;
+            processedAt: Date;
+            completedAt: Date;
+            createdAt: Date;
+            updatedAt: Date;
+            transactions: Transaction[];
+            paymentMethod: PaymentMethod;
+            receiver: User;
+            recipientBank: Bank;
+            sender: User;
+        }[];
         pagination: {
             currentPage: number;
             totalPages: number;

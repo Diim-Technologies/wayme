@@ -140,7 +140,10 @@ let TransfersService = TransfersService_1 = class TransfersService {
         const [transfers, total] = await queryBuilder.getManyAndCount();
         this.logger.log(`Found ${total} transfers for user ${userId}`);
         return {
-            data: transfers,
+            data: transfers.map(t => ({
+                ...t,
+                convertedAmount: new decimal_js_1.Decimal(t.amount).mul(t.exchangeRate || 0).toNumber(),
+            })),
             total,
             page,
             limit,
