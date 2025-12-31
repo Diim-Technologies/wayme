@@ -571,8 +571,6 @@ __decorate([
                 type: 'TRANSFER_FEE',
                 percentage: 2.5,
                 fixedAmount: 50,
-                minimumFee: 50,
-                maximumFee: 500,
                 currency: 'NGN',
                 applicableTo: 'DOMESTIC,BANK_TRANSFER',
                 isActive: true
@@ -603,8 +601,6 @@ __decorate([
                 },
                 percentage: { type: 'number', description: 'Percentage fee (0-100)', example: 2.5 },
                 fixedAmount: { type: 'number', description: 'Fixed amount fee', example: 50 },
-                minimumFee: { type: 'number', description: 'Minimum fee amount', example: 25 },
-                maximumFee: { type: 'number', description: 'Maximum fee amount', example: 1000 },
                 currency: { type: 'string', description: 'Currency code', example: 'NGN' },
                 applicableTo: {
                     type: 'array',

@@ -39,14 +39,6 @@ __decorate([
     __metadata("design:type", Number)
 ], Fee.prototype, "percentageRate", void 0);
 __decorate([
-    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
-    __metadata("design:type", Number)
-], Fee.prototype, "minimumAmount", void 0);
-__decorate([
-    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, nullable: true }),
-    __metadata("design:type", Number)
-], Fee.prototype, "maximumAmount", void 0);
-__decorate([
     (0, typeorm_1.Column)({ default: 'NGN' }),
     __metadata("design:type", String)
 ], Fee.prototype, "currency", void 0);

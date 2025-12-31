@@ -29,6 +29,7 @@ let FeeService = class FeeService {
                 where: {
                     type: common_enum_1.FeeType.TRANSFER_FEE,
                     isActive: true,
+                    currency: currency,
                 },
             });
             if (!feeConfig) {
@@ -40,12 +41,6 @@ let FeeService = class FeeService {
             }
             if (feeConfig.fixedAmount) {
                 calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
-            }
-            if (feeConfig.minimumAmount && calculatedFee.lt(feeConfig.minimumAmount)) {
-                calculatedFee = new decimal_js_1.Decimal(feeConfig.minimumAmount);
-            }
-            if (feeConfig.maximumAmount && calculatedFee.gt(feeConfig.maximumAmount)) {
-                calculatedFee = new decimal_js_1.Decimal(feeConfig.maximumAmount);
             }
             return calculatedFee;
         }
@@ -63,6 +58,7 @@ let FeeService = class FeeService {
                 where: {
                     type: common_enum_1.FeeType.CURRENCY_CONVERSION_FEE,
                     isActive: true,
+                    currency: sourceCurrency,
                 },
             });
             if (!feeConfig) {
@@ -75,12 +71,6 @@ let FeeService = class FeeService {
             if (feeConfig.fixedAmount) {
                 calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
             }
-            if (feeConfig.minimumAmount && calculatedFee.lt(feeConfig.minimumAmount)) {
-                calculatedFee = new decimal_js_1.Decimal(feeConfig.minimumAmount);
-            }
-            if (feeConfig.maximumAmount && calculatedFee.gt(feeConfig.maximumAmount)) {
-                calculatedFee = new decimal_js_1.Decimal(feeConfig.maximumAmount);
-            }
             return calculatedFee;
         }
         catch (error) {
@@ -90,23 +80,13 @@ let FeeService = class FeeService {
     }
     calculateFallbackTransferFee(amount, transferType, paymentMethod) {
         let feeRate = 0.025;
-        let minimumFee = 50;
-        let maximumFee = 500;
         if (transferType === 'INTERNATIONAL') {
             feeRate = 0.035;
-            minimumFee = 100;
-            maximumFee = 1000;
         }
         if (paymentMethod === 'CARD') {
             feeRate += 0.01;
         }
         let fee = amount.mul(feeRate);
-        if (fee.lt(minimumFee)) {
-            fee = new decimal_js_1.Decimal(minimumFee);
-        }
-        else if (fee.gt(maximumFee)) {
-            fee = new decimal_js_1.Decimal(maximumFee);
-        }
         return fee;
     }
     async getAllFeeConfigurations() {
@@ -121,8 +101,6 @@ let FeeService = class FeeService {
             type: data.type,
             percentageRate: data.percentage,
             fixedAmount: data.fixedAmount,
-            minimumAmount: data.minimumFee,
-            maximumAmount: data.maximumFee,
             currency: data.currency || 'NGN',
         });
         return this.feeRepository.save(feeConfig);
@@ -131,8 +109,6 @@ let FeeService = class FeeService {
         await this.feeRepository.update({ id }, {
             percentageRate: data.percentage,
             fixedAmount: data.fixedAmount,
-            minimumAmount: data.minimumFee,
-            maximumAmount: data.maximumFee,
             isActive: data.isActive,
         });
         return this.feeRepository.findOne({ where: { id } });

@@ -2,6 +2,7 @@ export declare class TransferQuoteDto {
     amount: number;
     fromCurrency: string;
     toCurrency: string;
+    paymentMethod?: string;
 }
 export declare class TransferQuoteResponseDto {
     amount: number;

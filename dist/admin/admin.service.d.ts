@@ -97,16 +97,12 @@ export declare class AdminService {
         type: string;
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         currency?: string;
         applicableTo?: string[];
     }): Promise<Fee>;
     updateFeeConfiguration(id: string, data: {
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         applicableTo?: string[];
         isActive?: boolean;
     }): Promise<Fee>;

@@ -27,11 +27,7 @@ export class Fee {
   @Column('decimal', { precision: 5, scale: 4, nullable: true })
   percentageRate: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  minimumAmount: number;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  maximumAmount: number;
 
   @Column({ default: 'NGN' })
   currency: string;

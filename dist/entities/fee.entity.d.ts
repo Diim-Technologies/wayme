@@ -5,8 +5,6 @@ export declare class Fee {
     name: string;
     fixedAmount: number;
     percentageRate: number;
-    minimumAmount: number;
-    maximumAmount: number;
     currency: string;
     isActive: boolean;
     createdAt: Date;

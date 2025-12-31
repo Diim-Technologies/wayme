@@ -91,16 +91,12 @@ export declare class AdminController {
         type: 'TRANSFER_FEE' | 'CURRENCY_CONVERSION_FEE' | 'WITHDRAWAL_FEE' | 'CARD_PROCESSING_FEE';
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         currency?: string;
         applicableTo?: string[];
     }): Promise<import("../entities").Fee>;
     updateFeeConfiguration(id: string, data: {
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         applicableTo?: string[];
         isActive?: boolean;
     }): Promise<import("../entities").Fee>;

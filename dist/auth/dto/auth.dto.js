@@ -33,10 +33,10 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "lastName", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: '+2348123456789' }),
+    (0, swagger_1.ApiProperty)({ example: '+2348123456789', description: 'Phone number in E.164 format (e.g., +2348123456789 for Nigeria, +1234567890 for US)' }),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^\+234[0-9]{10}$/, {
-        message: 'Phone number must be a valid Nigerian phone number',
+    (0, class_validator_1.Matches)(/^\+[1-9]\d{1,14}$/, {
+        message: 'Phone number must be in valid international format (E.164): start with + followed by country code and number (e.g., +2348123456789)',
     }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "phoneNumber", void 0);

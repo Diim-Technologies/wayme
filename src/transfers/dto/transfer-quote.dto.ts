@@ -14,6 +14,11 @@ export class TransferQuoteDto {
     @ApiProperty({ example: 'USD', description: 'Target currency code' })
     @IsString()
     toCurrency: string;
+
+    @ApiProperty({ example: 'BANK_TRANSFER', description: 'Payment method (CARD, BANK_TRANSFER, etc.)', required: false })
+    @IsString()
+    @IsOptional()
+    paymentMethod?: string;
 }
 
 export class TransferQuoteResponseDto {

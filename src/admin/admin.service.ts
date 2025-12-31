@@ -510,8 +510,7 @@ export class AdminService {
     type: string;
     percentage?: number;
     fixedAmount?: number;
-    minimumFee?: number;
-    maximumFee?: number;
+
     currency?: string;
     applicableTo?: string[];
   }) {
@@ -521,8 +520,7 @@ export class AdminService {
   async updateFeeConfiguration(id: string, data: {
     percentage?: number;
     fixedAmount?: number;
-    minimumFee?: number;
-    maximumFee?: number;
+
     applicableTo?: string[];
     isActive?: boolean;
   }) {

@@ -13,15 +13,11 @@ export declare class FeeService {
         type: string;
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         currency?: string;
     }): Promise<Fee>;
     updateFeeConfiguration(id: string, data: {
         percentage?: number;
         fixedAmount?: number;
-        minimumFee?: number;
-        maximumFee?: number;
         isActive?: boolean;
     }): Promise<Fee>;
 }

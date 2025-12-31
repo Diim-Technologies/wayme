@@ -36,7 +36,7 @@ let TransfersService = TransfersService_1 = class TransfersService {
         const amount = new decimal_js_1.Decimal(dto.amount);
         const exchangeRate = await this.currencyService.getExchangeRate(dto.fromCurrency, dto.toCurrency);
         const convertedAmount = amount.mul(exchangeRate);
-        const transferFee = await this.feeService.calculateTransferFee(amount, dto.fromCurrency === dto.toCurrency ? 'DOMESTIC' : 'INTERNATIONAL', 'CARD', dto.fromCurrency);
+        const transferFee = await this.feeService.calculateTransferFee(amount, dto.fromCurrency === dto.toCurrency ? 'DOMESTIC' : 'INTERNATIONAL', dto.paymentMethod || 'CARD', dto.fromCurrency);
         const conversionFee = await this.feeService.calculateCurrencyConversionFee(amount, dto.fromCurrency, dto.toCurrency);
         const totalFee = transferFee.add(conversionFee);
         const totalAmount = amount.add(totalFee);
