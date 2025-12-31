@@ -7,6 +7,7 @@ import { TransferStatus, NotificationType, TransactionStatus } from '../enums/co
 import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
+import { Decimal } from 'decimal.js';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -140,7 +141,10 @@ export class AdminService {
     });
 
     return {
-      transfers: sanitizedTransfers,
+      transfers: sanitizedTransfers.map(t => ({
+        ...t,
+        convertedAmount: new Decimal(t.amount).mul(t.exchangeRate || 0).toNumber(),
+      })),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

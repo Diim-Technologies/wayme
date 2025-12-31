@@ -190,7 +190,10 @@ export class TransfersService {
         this.logger.log(`Found ${total} transfers for user ${userId}`);
 
         return {
-            data: transfers,
+            data: transfers.map(t => ({
+                ...t,
+                convertedAmount: new Decimal(t.amount).mul(t.exchangeRate || 0).toNumber(),
+            })),
             total,
             page,
             limit,
