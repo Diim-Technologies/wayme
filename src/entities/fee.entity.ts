@@ -21,10 +21,10 @@ export class Fee {
   @Column()
   name: string;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column('decimal', { precision: 20, scale: 2, nullable: true })
   fixedAmount: number;
 
-  @Column('decimal', { precision: 5, scale: 4, nullable: true })
+  @Column('decimal', { precision: 10, scale: 4, nullable: true })
   percentageRate: number;
 
 

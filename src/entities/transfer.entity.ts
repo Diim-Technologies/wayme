@@ -28,13 +28,13 @@ export class Transfer {
   @Index()
   receiverId: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 20, scale: 2 })
   amount: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 20, scale: 2 })
   fee: number;
 
-  @Column('decimal', { precision: 10, scale: 4, nullable: true })
+  @Column('decimal', { precision: 20, scale: 8, nullable: true })
   exchangeRate: number;
 
   @Column({ default: 'NGN' })
