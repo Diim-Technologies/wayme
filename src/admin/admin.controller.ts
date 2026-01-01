@@ -18,7 +18,9 @@ import {
   UpdateKycStatusDto,
   UpdateTransferStatusDto,
   CreateExchangeRateDto,
-  CreateAdminUserDto
+  CreateAdminUserDto,
+  CreateFeeConfigurationDto,
+  UpdateFeeConfigurationDto
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -518,41 +520,10 @@ export class AdminController {
     summary: 'Create new fee configuration',
     description: 'Create a new fee configuration for transfers, currency conversions, or payment processing.'
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Fee configuration name', example: 'Card Processing Fee' },
-        type: {
-          type: 'string',
-          enum: ['TRANSFER_FEE', 'CURRENCY_CONVERSION_FEE', 'WITHDRAWAL_FEE', 'CARD_PROCESSING_FEE'],
-          description: 'Type of fee'
-        },
-        percentage: { type: 'number', description: 'Percentage fee (0-100)', example: 2.5 },
-        fixedAmount: { type: 'number', description: 'Fixed amount fee', example: 50 },
-
-        currency: { type: 'string', description: 'Currency code', example: 'NGN' },
-        applicableTo: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Applicable to types (DOMESTIC, INTERNATIONAL, CARD, BANK_TRANSFER)',
-          example: ['DOMESTIC', 'BANK_TRANSFER']
-        }
-      },
-      required: ['name', 'type']
-    }
-  })
+  @ApiBody({ type: CreateFeeConfigurationDto })
   @ApiResponse({ status: 201, description: 'Fee configuration created successfully' })
   async createFeeConfiguration(
-    @Body() data: {
-      name: string;
-      type: 'TRANSFER_FEE' | 'CURRENCY_CONVERSION_FEE' | 'WITHDRAWAL_FEE' | 'CARD_PROCESSING_FEE';
-      percentage?: number;
-      fixedAmount?: number;
-
-      currency?: string;
-      applicableTo?: string[];
-    },
+    @Body() data: CreateFeeConfigurationDto,
   ) {
     return this.adminService.createFeeConfiguration(data);
   }
@@ -569,13 +540,7 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Fee configuration not found' })
   async updateFeeConfiguration(
     @Param('id') id: string,
-    @Body() data: {
-      percentage?: number;
-      fixedAmount?: number;
-
-      applicableTo?: string[];
-      isActive?: boolean;
-    },
+    @Body() data: UpdateFeeConfigurationDto,
   ) {
     return this.adminService.updateFeeConfiguration(id, data);
   }

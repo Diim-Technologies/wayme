@@ -119,3 +119,69 @@ export class CreateAdminUserDto {
   })
   role: 'ADMIN' | 'SUPER_ADMIN';
 }
+
+import { FeeType } from '../../enums/common.enum';
+
+export class CreateFeeConfigurationDto {
+  @ApiProperty({ example: 'Card Processing Fee', description: 'Fee configuration name' })
+  @IsString()
+  @MinLength(3)
+  name: string;
+
+  @ApiProperty({
+    example: 'TRANSFER_FEE',
+    enum: FeeType,
+    description: 'Type of fee'
+  })
+  @IsEnum(FeeType, {
+    message: `Type must be one of: ${Object.values(FeeType).join(', ')}`
+  })
+  type: FeeType;
+
+  @ApiPropertyOptional({ example: 2.5, description: 'Percentage fee (0-100)' })
+  @IsOptional()
+  @IsNumber()
+  percentage?: number;
+
+  @ApiPropertyOptional({ example: 50, description: 'Fixed amount fee' })
+  @IsOptional()
+  @IsNumber()
+  fixedAmount?: number;
+
+  @ApiPropertyOptional({ example: 'NGN', description: 'Currency code' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({
+    example: ['DOMESTIC', 'BANK_TRANSFER'],
+    description: 'Applicable to types'
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  applicableTo?: string[];
+}
+
+export class UpdateFeeConfigurationDto {
+  @ApiPropertyOptional({ example: 2.5, description: 'Percentage fee (0-100)' })
+  @IsOptional()
+  @IsNumber()
+  percentage?: number;
+
+  @ApiPropertyOptional({ example: 50, description: 'Fixed amount fee' })
+  @IsOptional()
+  @IsNumber()
+  fixedAmount?: number;
+
+  @ApiPropertyOptional({
+    example: ['DOMESTIC', 'BANK_TRANSFER'],
+    description: 'Applicable to types'
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  applicableTo?: string[];
+
+  @ApiPropertyOptional({ example: true, description: 'Is fee active' })
+  @IsOptional()
+  isActive?: boolean;
+}

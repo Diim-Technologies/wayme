@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
 import { UserRole, KycStatus } from '../enums/user.enum';
 import { TransferStatus, NotificationType, TransactionStatus } from '../enums/common.enum';
-import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto } from './dto/admin.dto';
+import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto, CreateFeeConfigurationDto, UpdateFeeConfigurationDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
 import { Decimal } from 'decimal.js';
@@ -509,25 +509,11 @@ export class AdminService {
     return this.feeService.getAllFeeConfigurations();
   }
 
-  async createFeeConfiguration(data: {
-    name: string;
-    type: string;
-    percentage?: number;
-    fixedAmount?: number;
-
-    currency?: string;
-    applicableTo?: string[];
-  }) {
+  async createFeeConfiguration(data: CreateFeeConfigurationDto) {
     return this.feeService.createFeeConfiguration(data);
   }
 
-  async updateFeeConfiguration(id: string, data: {
-    percentage?: number;
-    fixedAmount?: number;
-
-    applicableTo?: string[];
-    isActive?: boolean;
-  }) {
+  async updateFeeConfiguration(id: string, data: UpdateFeeConfigurationDto) {
     return this.feeService.updateFeeConfiguration(id, data);
   }
 
