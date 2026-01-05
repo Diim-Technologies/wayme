@@ -27,7 +27,11 @@ export class Fee {
   @Column('decimal', { precision: 10, scale: 4, nullable: true })
   percentageRate: number;
 
+  @Column({ nullable: true })
+  transferType: string;
 
+  @Column({ nullable: true })
+  paymentMethod: string;
 
   @Column({ default: 'NGN' })
   currency: string;

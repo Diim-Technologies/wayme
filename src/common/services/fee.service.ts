@@ -14,17 +14,59 @@ export class FeeService {
 
   async calculateTransferFee(amount: Decimal, transferType: string = 'DOMESTIC', paymentMethod: string = 'BANK_TRANSFER', currency: string = 'NGN'): Promise<Decimal> {
     try {
-      const feeConfig = await this.feeRepository.findOne({
+      // Try to find a specific fee configuration matching all criteria
+      let feeConfig = await this.feeRepository.findOne({
         where: {
           type: FeeType.TRANSFER_FEE,
           isActive: true,
           currency: currency,
+          transferType: transferType,
+          paymentMethod: paymentMethod,
         },
       });
 
+      // If no exact match, try finding by transferType only
       if (!feeConfig) {
-        // Fallback fee calculation
-        return this.calculateFallbackTransferFee(amount, transferType, paymentMethod);
+        feeConfig = await this.feeRepository.findOne({
+          where: {
+            type: FeeType.TRANSFER_FEE,
+            isActive: true,
+            currency: currency,
+            transferType: transferType,
+            paymentMethod: null,
+          },
+        });
+      }
+
+      // If still no match, try finding by paymentMethod only
+      if (!feeConfig) {
+        feeConfig = await this.feeRepository.findOne({
+          where: {
+            type: FeeType.TRANSFER_FEE,
+            isActive: true,
+            currency: currency,
+            transferType: null,
+            paymentMethod: paymentMethod,
+          },
+        });
+      }
+
+      // If still no match, try finding a default configuration (both null)
+      if (!feeConfig) {
+        feeConfig = await this.feeRepository.findOne({
+          where: {
+            type: FeeType.TRANSFER_FEE,
+            isActive: true,
+            currency: currency,
+            transferType: null,
+            paymentMethod: null,
+          },
+        });
+      }
+
+      if (!feeConfig) {
+        console.warn(`No fee configuration found for transferType: ${transferType}, paymentMethod: ${paymentMethod}, currency: ${currency}`);
+        return new Decimal(0);
       }
 
       let calculatedFee = new Decimal(0);
@@ -39,12 +81,10 @@ export class FeeService {
         calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
       }
 
-
-
       return calculatedFee;
     } catch (error) {
       console.error('Error calculating transfer fee:', error);
-      return this.calculateFallbackTransferFee(amount, transferType, paymentMethod);
+      return new Decimal(0);
     }
   }
 
@@ -86,28 +126,7 @@ export class FeeService {
     }
   }
 
-  private calculateFallbackTransferFee(amount: Decimal, transferType: string, paymentMethod: string): Decimal {
-    // Fallback fee structure
-    let feeRate = 0.025; // 2.5% base rate
 
-
-    // Adjust based on transfer type
-    if (transferType === 'INTERNATIONAL') {
-      feeRate = 0.035; // 3.5% for international
-
-    }
-
-    // Adjust based on payment method
-    if (paymentMethod === 'CARD') {
-      feeRate += 0.01; // Additional 1% for card payments
-    }
-
-    let fee = amount.mul(feeRate);
-
-
-
-    return fee;
-  }
 
   async getAllFeeConfigurations() {
     return this.feeRepository.find({
@@ -121,7 +140,8 @@ export class FeeService {
     type: string;
     percentage?: number;
     fixedAmount?: number;
-
+    transferType?: string;
+    paymentMethod?: string;
     currency?: string;
   }) {
     const feeConfig = this.feeRepository.create({
@@ -129,7 +149,8 @@ export class FeeService {
       type: data.type as FeeType,
       percentageRate: data.percentage,
       fixedAmount: data.fixedAmount,
-
+      transferType: data.transferType,
+      paymentMethod: data.paymentMethod,
       currency: data.currency || 'NGN',
     });
 
@@ -139,7 +160,8 @@ export class FeeService {
   async updateFeeConfiguration(id: string, data: {
     percentage?: number;
     fixedAmount?: number;
-
+    transferType?: string;
+    paymentMethod?: string;
     isActive?: boolean;
   }) {
     await this.feeRepository.update(
@@ -147,7 +169,8 @@ export class FeeService {
       {
         percentageRate: data.percentage,
         fixedAmount: data.fixedAmount,
-
+        transferType: data.transferType,
+        paymentMethod: data.paymentMethod,
         isActive: data.isActive,
       }
     );
