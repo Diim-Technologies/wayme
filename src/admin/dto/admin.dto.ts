@@ -185,3 +185,21 @@ export class UpdateFeeConfigurationDto {
   @IsOptional()
   isActive?: boolean;
 }
+
+export class RequestAdminVerificationDto {
+  @ApiProperty({ example: 'admin@wayame.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class VerifyAdminOtpDto {
+  @ApiProperty({ example: 'admin@wayame.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @MinLength(6)
+  code: string;
+}
+

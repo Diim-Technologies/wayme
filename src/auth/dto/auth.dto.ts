@@ -91,3 +91,20 @@ export class ChangePasswordDto {
   })
   newPassword: string;
 }
+
+export class RequestEmailVerificationDto {
+  @ApiProperty({ example: 'john.doe@example.com' })
+  @IsEmail()
+  email: string;
+}
+
+export class VerifyEmailDto {
+  @ApiProperty({ example: 'john.doe@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @MinLength(6)
+  code: string;
+}

@@ -399,4 +399,124 @@ export class EmailService {
     this.logger.log(`Bulk email sent to ${successCount}/${emails.length} recipients`);
     return successCount > 0;
   }
+
+  async sendEmailVerificationOTP(email: string, otp: string, firstName: string) {
+    const subject = 'Verify Your Email - Wayame';
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Verify Your Email</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">📧 Verify Your Email</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              Thank you for registering with Wayame! Please verify your email address using the code below:
+            </p>
+            
+            <div style="background: white; border: 2px dashed #667eea; border-radius: 8px; padding: 25px; text-align: center; margin: 25px 0;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Your Verification Code</h3>
+              <div style="font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px; margin: 15px 0;">
+                ${otp}
+              </div>
+              <p style="color: #6c757d; margin: 15px 0 0 0; font-size: 14px;">
+                This code expires in 10 minutes
+              </p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>🛡️ Security Notice:</strong> If you didn't create a Wayame account, please ignore this email.
+              </p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              Enter this code in the Wayame app to verify your email address and start sending money home.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>If you need help, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, subject, html);
+    if (success) {
+      this.logger.log(`Email verification OTP sent to ${email}`);
+    }
+    return success;
+  }
+
+  async sendAdminVerificationOTP(email: string, otp: string, firstName: string) {
+    const subject = 'Admin Verification Code - Wayame';
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Admin Verification</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🔐 Admin Verification</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              A verification code has been requested for your admin account. Use the code below to complete the verification:
+            </p>
+            
+            <div style="background: white; border: 2px dashed #dc3545; border-radius: 8px; padding: 25px; text-align: center; margin: 25px 0;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Your Verification Code</h3>
+              <div style="font-size: 32px; font-weight: bold; color: #dc3545; letter-spacing: 5px; margin: 15px 0;">
+                ${otp}
+              </div>
+              <p style="color: #6c757d; margin: 15px 0 0 0; font-size: 14px;">
+                This code expires in 10 minutes
+              </p>
+            </div>
+            
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #721c24; font-size: 14px;">
+                <strong>⚠️ Security Alert:</strong> This is an admin verification code. If you didn't request this, please contact security immediately at security@wayame.com
+              </p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              Enter this code to verify your admin privileges and proceed with the requested action.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer - Admin System</p>
+              <p>For security concerns, contact us at security@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, subject, html);
+    if (success) {
+      this.logger.log(`Admin verification OTP sent to ${email}`);
+    }
+    return success;
+  }
 }

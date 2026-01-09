@@ -12,13 +12,15 @@ import { User, OTP } from '../entities';
 import { OTPType } from '../enums/common.enum';
 import { EmailService } from '../common/services/email.service';
 import * as bcrypt from 'bcrypt';
-import { 
-  RegisterDto, 
-  LoginDto, 
-  ForgotPasswordDto, 
-  VerifyOTPDto, 
-  ResetPasswordDto, 
-  ChangePasswordDto 
+import {
+  RegisterDto,
+  LoginDto,
+  ForgotPasswordDto,
+  VerifyOTPDto,
+  ResetPasswordDto,
+  ChangePasswordDto,
+  RequestEmailVerificationDto,
+  VerifyEmailDto
 } from './dto/auth.dto';
 
 @Injectable()
@@ -31,7 +33,7 @@ export class AuthService {
     private dataSource: DataSource,
     private jwtService: JwtService,
     private emailService: EmailService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
     const { email, firstName, lastName, phoneNumber, password } = registerDto;
@@ -318,6 +320,93 @@ export class AuthService {
 
   private generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  async requestEmailVerificationOTP(requestDto: RequestEmailVerificationDto) {
+    const { email } = requestDto;
+
+    // Find user by email
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Generate 6-digit OTP
+    const otp = this.generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save OTP to database
+    const otpEntity = this.otpRepository.create({
+      userId: user.id,
+      code: otp,
+      type: OTPType.EMAIL_VERIFICATION,
+      expiresAt,
+    });
+    await this.otpRepository.save(otpEntity);
+
+    // Send OTP via email
+    try {
+      await this.emailService.sendEmailVerificationOTP(email, otp, user.firstName);
+    } catch (error) {
+      console.log('Failed to send email verification OTP:', error);
+      throw new BadRequestException('Failed to send verification email. Please try again.');
+    }
+
+    return {
+      message: 'Verification code sent to your email address.',
+      otpSent: true,
+    };
+  }
+
+  async verifyEmailOTP(verifyEmailDto: VerifyEmailDto) {
+    const { email, code } = verifyEmailDto;
+
+    // Find user by email
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if already verified
+    if (user.isVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Find valid OTP
+    const otp = await this.otpRepository.findOne({
+      where: {
+        userId: user.id,
+        code,
+        type: OTPType.EMAIL_VERIFICATION,
+        isUsed: false,
+      },
+    });
+
+    if (!otp || otp.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    // Update user verification status and mark OTP as used in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      await manager.update(User, { id: user.id }, { isVerified: true });
+      await manager.update(OTP, { id: otp.id }, { isUsed: true });
+    });
+
+    return {
+      message: 'Email verified successfully.',
+      verified: true,
+    };
   }
 
   async cleanupExpiredOTPs() {

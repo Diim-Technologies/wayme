@@ -20,7 +20,9 @@ import {
   CreateExchangeRateDto,
   CreateAdminUserDto,
   CreateFeeConfigurationDto,
-  UpdateFeeConfigurationDto
+  UpdateFeeConfigurationDto,
+  RequestAdminVerificationDto,
+  VerifyAdminOtpDto
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -647,6 +649,49 @@ export class AdminController {
     },
   ) {
     return this.adminService.createSystemSetting(data);
+  }
+
+  // Admin OTP Verification
+  @Post('request-verification-otp')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiTags('Admin - Verification')
+  @ApiOperation({
+    summary: 'Request admin verification OTP',
+    description: 'Send a verification code to the admin\'s email address for two-factor authentication. OTP expires after 10 minutes.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verification code sent successfully',
+    example: {
+      message: 'Verification code sent to your email address.',
+      otpSent: true
+    }
+  })
+  @ApiResponse({ status: 400, description: 'User is not an admin' })
+  @ApiResponse({ status: 404, description: 'Admin user not found' })
+  async requestVerificationOtp(@Body() requestDto: RequestAdminVerificationDto) {
+    return this.adminService.requestAdminVerificationOTP(requestDto);
+  }
+
+  @Post('verify-otp')
+  @Roles('ADMIN', 'SUPER_ADMIN')
+  @ApiTags('Admin - Verification')
+  @ApiOperation({
+    summary: 'Verify admin OTP code',
+    description: 'Verify the admin\'s two-factor authentication code sent via email.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin verification successful',
+    example: {
+      message: 'Admin verification successful.',
+      verified: true
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid, expired, or already used OTP code, or user is not an admin' })
+  @ApiResponse({ status: 404, description: 'Admin user not found' })
+  async verifyOtp(@Body() verifyAdminOtpDto: VerifyAdminOtpDto) {
+    return this.adminService.verifyAdminOTP(verifyAdminOtpDto);
   }
 
   private getPermissionsByRole(role: string) {

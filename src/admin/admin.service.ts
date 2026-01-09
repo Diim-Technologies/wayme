@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification } from '../entities';
+import { User, Transfer, Transaction, PaymentMethod, Bank, Fee, Currency, Notification, OTP } from '../entities';
 import { UserRole, KycStatus } from '../enums/user.enum';
-import { TransferStatus, NotificationType, TransactionStatus } from '../enums/common.enum';
-import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto, CreateFeeConfigurationDto, UpdateFeeConfigurationDto } from './dto/admin.dto';
+import { TransferStatus, NotificationType, TransactionStatus, OTPType } from '../enums/common.enum';
+import { UpdateUserRoleDto, AdminStatsDto, CreateAdminUserDto, CreateFeeConfigurationDto, UpdateFeeConfigurationDto, RequestAdminVerificationDto, VerifyAdminOtpDto } from './dto/admin.dto';
 import { CurrencyService } from '../common/services/currency.service';
 import { FeeService } from '../common/services/fee.service';
+import { EmailService } from '../common/services/email.service';
 import { Decimal } from 'decimal.js';
 import * as bcrypt from 'bcrypt';
 
@@ -29,9 +30,12 @@ export class AdminService {
     private currencyRepository: Repository<Currency>,
     @InjectRepository(Notification)
     private notificationRepository: Repository<Notification>,
+    @InjectRepository(OTP)
+    private otpRepository: Repository<OTP>,
     private dataSource: DataSource,
     private currencyService: CurrencyService,
     private feeService: FeeService,
+    private emailService: EmailService,
   ) { }
 
   async getDashboardStats(): Promise<AdminStatsDto> {
@@ -558,5 +562,94 @@ export class AdminService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
+
+  // Admin OTP Verification
+  async requestAdminVerificationOTP(requestDto: RequestAdminVerificationDto) {
+    const { email } = requestDto;
+
+    // Find admin user by email
+    const admin = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin user not found');
+    }
+
+    // Check if user is admin or super admin
+    if (admin.role !== UserRole.ADMIN && admin.role !== UserRole.SUPER_ADMIN) {
+      throw new BadRequestException('User is not an admin');
+    }
+
+    // Generate 6-digit OTP
+    const otp = this.generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save OTP to database
+    const otpEntity = this.otpRepository.create({
+      userId: admin.id,
+      code: otp,
+      type: OTPType.TWO_FACTOR_AUTH,
+      expiresAt,
+    });
+    await this.otpRepository.save(otpEntity);
+
+    // Send OTP via email
+    try {
+      await this.emailService.sendAdminVerificationOTP(email, otp, admin.firstName);
+    } catch (error) {
+      console.log('Failed to send admin verification OTP:', error);
+      throw new BadRequestException('Failed to send verification email. Please try again.');
+    }
+
+    return {
+      message: 'Verification code sent to your email address.',
+      otpSent: true,
+    };
+  }
+
+  async verifyAdminOTP(verifyAdminOtpDto: VerifyAdminOtpDto) {
+    const { email, code } = verifyAdminOtpDto;
+
+    // Find admin user by email
+    const admin = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin user not found');
+    }
+
+    // Check if user is admin or super admin
+    if (admin.role !== UserRole.ADMIN && admin.role !== UserRole.SUPER_ADMIN) {
+      throw new BadRequestException('User is not an admin');
+    }
+
+    // Find valid OTP
+    const otp = await this.otpRepository.findOne({
+      where: {
+        userId: admin.id,
+        code,
+        type: OTPType.TWO_FACTOR_AUTH,
+        isUsed: false,
+      },
+    });
+
+    if (!otp || otp.expiresAt < new Date()) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
+    // Mark OTP as used
+    await this.otpRepository.update({ id: otp.id }, { isUsed: true });
+
+    return {
+      message: 'Admin verification successful.',
+      verified: true,
+    };
+  }
+
+  private generateOTP(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 }
