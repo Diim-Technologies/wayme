@@ -1,0 +1,33 @@
+import { TransferStatus } from '../enums/common.enum';
+import { Transaction } from './transaction.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { User } from './user.entity';
+import { Bank } from './bank.entity';
+export declare class Transfer {
+    id: string;
+    senderId: string;
+    receiverId: string;
+    amount: number;
+    fee: number;
+    exchangeRate: number;
+    sourceCurrency: string;
+    targetCurrency: string;
+    purpose: string;
+    status: TransferStatus;
+    reference: string;
+    paymentMethodId: string;
+    recipientBankId: string;
+    recipientAccount: string;
+    recipientName: string;
+    recipientPhone: string;
+    notes: string;
+    processedAt: Date;
+    completedAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+    transactions: Transaction[];
+    paymentMethod: PaymentMethod;
+    receiver: User;
+    recipientBank: Bank;
+    sender: User;
+}
