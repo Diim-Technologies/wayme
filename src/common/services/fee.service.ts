@@ -71,9 +71,9 @@ export class FeeService {
 
       let calculatedFee = new Decimal(0);
 
-      // Apply percentage fee
+      // Apply percentage fee (convert percentage to decimal by dividing by 100)
       if (feeConfig.percentageRate) {
-        calculatedFee = amount.mul(feeConfig.percentageRate);
+        calculatedFee = amount.mul(feeConfig.percentageRate).div(100);
       }
 
       // Apply fixed fee
@@ -109,8 +109,9 @@ export class FeeService {
 
       let calculatedFee = new Decimal(0);
 
+      // Apply percentage fee (convert percentage to decimal by dividing by 100)
       if (feeConfig.percentageRate) {
-        calculatedFee = amount.mul(feeConfig.percentageRate);
+        calculatedFee = amount.mul(feeConfig.percentageRate).div(100);
       }
 
       if (feeConfig.fixedAmount) {

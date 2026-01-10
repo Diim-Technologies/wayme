@@ -73,7 +73,7 @@ let FeeService = class FeeService {
             }
             let calculatedFee = new decimal_js_1.Decimal(0);
             if (feeConfig.percentageRate) {
-                calculatedFee = amount.mul(feeConfig.percentageRate);
+                calculatedFee = amount.mul(feeConfig.percentageRate).div(100);
             }
             if (feeConfig.fixedAmount) {
                 calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
@@ -102,7 +102,7 @@ let FeeService = class FeeService {
             }
             let calculatedFee = new decimal_js_1.Decimal(0);
             if (feeConfig.percentageRate) {
-                calculatedFee = amount.mul(feeConfig.percentageRate);
+                calculatedFee = amount.mul(feeConfig.percentageRate).div(100);
             }
             if (feeConfig.fixedAmount) {
                 calculatedFee = calculatedFee.add(feeConfig.fixedAmount);
