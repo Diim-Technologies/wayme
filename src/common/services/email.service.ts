@@ -519,4 +519,221 @@ export class EmailService {
     }
     return success;
   }
+
+  async sendDisputeCreatedNotification(email: string, disputeId: string, subject: string, firstName: string) {
+    const emailSubject = 'Dispute Created - Wayame';
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dispute Created</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Dispute Created</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              Your dispute has been successfully created and our support team has been notified.
+            </p>
+            
+            <div style="background: white; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #f39c12;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Dispute Details</h3>
+              <p style="margin: 5px 0;"><strong>Dispute ID:</strong> ${disputeId}</p>
+              <p style="margin: 5px 0;"><strong>Subject:</strong> ${subject}</p>
+              <p style="margin: 5px 0;"><strong>Status:</strong> OPEN</p>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>📋 What's Next:</strong> Our support team will review your dispute and respond within 24-48 hours. You will receive email notifications for any updates.
+              </p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              You can track your dispute status and add additional information by logging into your Wayame account.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, emailSubject, html);
+    if (success) {
+      this.logger.log(`Dispute created notification sent to ${email}`);
+    }
+    return success;
+  }
+
+  async sendDisputeReplyNotification(email: string, disputeId: string, replyFrom: string, isAdmin: boolean) {
+    const emailSubject = isAdmin ? 'Admin Reply to Your Dispute - Wayame' : 'New Reply on Your Dispute - Wayame';
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dispute Reply</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">💬 New Reply</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">New Message on Your Dispute</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              ${isAdmin ? 'Our support team has replied to your dispute.' : `${replyFrom} has added a new message to your dispute.`}
+            </p>
+            
+            <div style="background: white; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #3498db;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Dispute ID: ${disputeId}</h3>
+              <p style="margin: 5px 0;"><strong>From:</strong> ${isAdmin ? 'Wayame Support Team' : replyFrom}</p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              Please log in to your Wayame account to view the full message and continue the conversation.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, emailSubject, html);
+    if (success) {
+      this.logger.log(`Dispute reply notification sent to ${email}`);
+    }
+    return success;
+  }
+
+  async sendDisputeStatusUpdateNotification(email: string, disputeId: string, status: string, firstName: string) {
+    const emailSubject = 'Dispute Status Updated - Wayame';
+    const statusColors = {
+      OPEN: '#f39c12',
+      IN_PROGRESS: '#3498db',
+      RESOLVED: '#27ae60',
+      CLOSED: '#95a5a6',
+    };
+    const color = statusColors[status] || '#3498db';
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dispute Status Update</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: ${color}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">📊 Status Updated</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              The status of your dispute has been updated.
+            </p>
+            
+            <div style="background: white; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid ${color};">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Dispute ID: ${disputeId}</h3>
+              <p style="margin: 5px 0;"><strong>New Status:</strong> <span style="color: ${color}; font-weight: bold;">${status}</span></p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              Log in to your Wayame account to view more details and any messages from our support team.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, emailSubject, html);
+    if (success) {
+      this.logger.log(`Dispute status update notification sent to ${email}`);
+    }
+    return success;
+  }
+
+  async sendDisputeClosedNotification(email: string, disputeId: string, resolution: string, firstName: string) {
+    const emailSubject = 'Dispute Resolved - Wayame';
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Dispute Resolved</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">✅ Dispute Resolved</h1>
+          </div>
+          
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e9ecef;">
+            <h2 style="color: #495057; margin-top: 0;">Hello ${firstName},</h2>
+            
+            <p style="font-size: 16px; margin-bottom: 25px;">
+              Your dispute has been resolved and closed by our support team.
+            </p>
+            
+            <div style="background: white; border-radius: 8px; padding: 25px; margin: 25px 0; border-left: 4px solid #27ae60;">
+              <h3 style="color: #495057; margin: 0 0 15px 0;">Dispute ID: ${disputeId}</h3>
+              <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #27ae60; font-weight: bold;">CLOSED</span></p>
+            </div>
+            
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 6px; padding: 20px; margin: 25px 0;">
+              <h3 style="color: #155724; margin: 0 0 10px 0;">Resolution</h3>
+              <p style="margin: 0; color: #155724;">${resolution}</p>
+            </div>
+            
+            <p style="font-size: 16px; margin-top: 25px;">
+              If you have any further questions or concerns, please don't hesitate to contact our support team.
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+            
+            <div style="text-align: center; color: #6c757d; font-size: 12px;">
+              <p>This email was sent by Wayame Money Transfer</p>
+              <p>For support, contact us at support@wayame.com</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+    const success = await this.sendMail(email, emailSubject, html);
+    if (success) {
+      this.logger.log(`Dispute closed notification sent to ${email}`);
+    }
+    return success;
+  }
 }

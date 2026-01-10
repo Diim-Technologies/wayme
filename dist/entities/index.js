@@ -26,4 +26,7 @@ __exportStar(require("./fee.entity"), exports);
 __exportStar(require("./payment-method.entity"), exports);
 __exportStar(require("./transfer.entity"), exports);
 __exportStar(require("./user-profile.entity"), exports);
+__exportStar(require("./dispute.entity"), exports);
+__exportStar(require("./dispute-message.entity"), exports);
+__exportStar(require("./stripe-payment-method.entity"), exports);
 //# sourceMappingURL=index.js.map

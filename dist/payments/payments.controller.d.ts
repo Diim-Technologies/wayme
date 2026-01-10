@@ -5,7 +5,7 @@ export declare class PaymentsController {
     private readonly paymentsService;
     constructor(paymentsService: PaymentsService);
     createPaymentIntent(req: any, dto: CreatePaymentDto): Promise<PaymentIntentResponseDto>;
-    getAvailablePaymentMethods(): Promise<import("../entities/stripe-payment-method.entity").StripePaymentMethod[]>;
+    getAvailablePaymentMethods(): Promise<import("../entities").StripePaymentMethod[]>;
     handleWebhook(signature: string, req: RawBodyRequest<Request>): Promise<{
         received: boolean;
     }>;

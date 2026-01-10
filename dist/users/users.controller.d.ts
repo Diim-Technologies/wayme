@@ -85,7 +85,7 @@ export declare class UsersController {
     } | {
         success: any;
         message: string;
-        emailType: "welcome" | "otp" | "transaction";
+        emailType: "transaction" | "welcome" | "otp";
         error?: undefined;
     } | {
         success: boolean;

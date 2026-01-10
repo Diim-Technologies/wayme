@@ -10,3 +10,6 @@ export * from './fee.entity';
 export * from './payment-method.entity';
 export * from './transfer.entity';
 export * from './user-profile.entity';
+export * from './dispute.entity';
+export * from './dispute-message.entity';
+export * from './stripe-payment-method.entity';

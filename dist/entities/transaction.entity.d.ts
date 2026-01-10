@@ -1,5 +1,6 @@
 import { TransactionType, TransactionStatus } from '../enums/common.enum';
 import { Transfer } from './transfer.entity';
+import { Dispute } from './dispute.entity';
 export declare class Transaction {
     id: string;
     transferId: string;
@@ -18,4 +19,5 @@ export declare class Transaction {
     createdAt: Date;
     updatedAt: Date;
     transfer: Transfer;
+    disputes: Dispute[];
 }

@@ -20,4 +20,8 @@ export declare class EmailService {
     sendBulkEmail(emails: string[], subject: string, html: string): Promise<boolean>;
     sendEmailVerificationOTP(email: string, otp: string, firstName: string): Promise<boolean>;
     sendAdminVerificationOTP(email: string, otp: string, firstName: string): Promise<boolean>;
+    sendDisputeCreatedNotification(email: string, disputeId: string, subject: string, firstName: string): Promise<boolean>;
+    sendDisputeReplyNotification(email: string, disputeId: string, replyFrom: string, isAdmin: boolean): Promise<boolean>;
+    sendDisputeStatusUpdateNotification(email: string, disputeId: string, status: string, firstName: string): Promise<boolean>;
+    sendDisputeClosedNotification(email: string, disputeId: string, resolution: string, firstName: string): Promise<boolean>;
 }
