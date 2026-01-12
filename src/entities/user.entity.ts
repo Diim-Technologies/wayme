@@ -60,7 +60,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: KycStatus,
-    default: KycStatus.PENDING,
+    default: KycStatus.NOT_SUBMITTED,
   })
   kycStatus: KycStatus;
 

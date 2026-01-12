@@ -1,12 +1,18 @@
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
 import { Request } from 'express';
+import * as fs from 'fs';
 
 export const multerConfig = {
     storage: diskStorage({
         destination: (req: Request, file: Express.Multer.File, cb) => {
             const userId = (req as any).user?.id || 'unknown';
-            const uploadPath = `uploads/kyc/${userId}`;
+            const uploadPath = join(process.cwd(), 'uploads', 'kyc', userId);
+
+            if (!fs.existsSync(uploadPath)) {
+                fs.mkdirSync(uploadPath, { recursive: true });
+            }
+
             cb(null, uploadPath);
         },
         filename: (req: Request, file: Express.Multer.File, cb) => {

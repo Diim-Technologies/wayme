@@ -1,0 +1,62 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "userId",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "dateOfBirth",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "column_name": "address",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "city",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "state",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "country",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "postalCode",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "occupation",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "idType",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "idNumber",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "idImageUrl",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "selfieUrl",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "createdAt",
+    "data_type": "timestamp without time zone"
+  },
+  {
+    "column_name": "updatedAt",
+    "data_type": "timestamp without time zone"
+  }
+]

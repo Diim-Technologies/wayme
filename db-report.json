@@ -1,0 +1,71 @@
+{
+  "tables": [
+    "migrations",
+    "stripe_payment_methods",
+    "system_settings",
+    "fee_configurations",
+    "users",
+    "notifications",
+    "otps",
+    "payment_methods",
+    "banks",
+    "user_profiles",
+    "exchange_rates",
+    "transactions",
+    "beneficiaries",
+    "transfers",
+    "typeorm_metadata",
+    "currencies",
+    "fees"
+  ],
+  "userColumns": [
+    {
+      "column_name": "id",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "email",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "firstName",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "lastName",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "phoneNumber",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "password",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "role",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "isVerified",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "kycStatus",
+      "data_type": "character varying"
+    },
+    {
+      "column_name": "createdAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "updatedAt",
+      "data_type": "timestamp without time zone"
+    },
+    {
+      "column_name": "profileId",
+      "data_type": "character varying"
+    }
+  ]
+}
