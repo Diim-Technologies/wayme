@@ -789,5 +789,35 @@ export class EmailService {
     `;
     return this.sendMail(email, subject, html);
   }
+
+  async sendLogin2FAOTP(email: string, otp: string, firstName: string) {
+    const subject = `${otp} is your Wayame login verification code`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2;">Wayame</h1>
+        </div>
+        <h2 style="color: #333;">Hello ${firstName},</h2>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Your login attempt requires an extra layer of security. Please use the following verification code to complete your sign-in:
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <div style="background-color: #f4f7f9; display: inline-block; padding: 15px 30px; border-radius: 8px; border: 1px dashed #4a90e2;">
+            <span style="font-size: 32px; font-weight: bold; color: #4a90e2; letter-spacing: 5px;">${otp}</span>
+          </div>
+        </div>
+        <p style="color: #777; font-size: 14px; text-align: center;">
+          This code will expire in 10 minutes.
+        </p>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          If you didn't attempt to log in, please ignore this email or contact support if you suspect unauthorized access.
+        </p>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Stay secure,<br>The Wayame Team
+        </p>
+      </div>
+    `;
+    return this.sendMail(email, subject, html);
+  }
 }
 

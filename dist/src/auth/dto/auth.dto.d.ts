@@ -16,6 +16,10 @@ export declare class VerifyOTPDto {
     email: string;
     code: string;
 }
+export declare class Verify2FADto {
+    email: string;
+    code: string;
+}
 export declare class ResetPasswordDto {
     email: string;
     code: string;

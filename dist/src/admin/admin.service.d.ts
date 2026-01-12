@@ -78,6 +78,7 @@ export declare class AdminService {
         role: UserRole;
         isVerified: boolean;
         kycStatus: KycStatus;
+        isTwoFactorEnabled: boolean;
         createdAt: Date;
         updatedAt: Date;
         notifications: Notification[];

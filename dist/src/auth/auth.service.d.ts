@@ -25,6 +25,29 @@ export declare class AuthService {
         accessToken: string;
     }>;
     login(loginDto: LoginDto): Promise<{
+        message: string;
+        email: string;
+        twoFactorEnabled: boolean;
+        user?: undefined;
+        accessToken?: undefined;
+    } | {
+        user: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            phoneNumber: string;
+            role: import("../enums/user.enum").UserRole;
+            isVerified: boolean;
+            kycStatus: import("../enums/user.enum").KycStatus;
+            createdAt: Date;
+        };
+        accessToken: string;
+        message?: undefined;
+        email?: undefined;
+        twoFactorEnabled?: undefined;
+    }>;
+    verify2FA(verify2FADto: any): Promise<{
         user: {
             id: string;
             email: string;

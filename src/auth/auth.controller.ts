@@ -9,7 +9,8 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   RequestEmailVerificationDto,
-  VerifyEmailDto
+  VerifyEmailDto,
+  Verify2FADto
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -69,6 +70,32 @@ export class AuthController {
   @ApiResponse({ status: 423, description: 'Account is locked or suspended' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('verify-2fa')
+  @ApiOperation({
+    summary: 'Verify 2FA OTP code',
+    description: 'Verify the 2FA OTP code sent to user email upon login. Returns JWT token on success.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: '2FA verification successful',
+    example: {
+      user: {
+        id: 'user_123',
+        email: 'john@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: 'USER'
+      },
+      accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+      tokenType: 'Bearer'
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Invalid or expired 2FA code' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async verify2FA(@Body() verify2FADto: Verify2FADto) {
+    return this.authService.verify2FA(verify2FADto);
   }
 
   @Post('forgot-password')

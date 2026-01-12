@@ -59,6 +59,17 @@ export class VerifyOTPDto {
   code: string;
 }
 
+export class Verify2FADto {
+  @ApiProperty({ example: 'john.doe@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @MinLength(6)
+  code: string;
+}
+
 export class ResetPasswordDto {
   @ApiProperty({ example: 'john.doe@example.com' })
   @IsEmail()

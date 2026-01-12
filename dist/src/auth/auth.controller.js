@@ -28,6 +28,9 @@ let AuthController = class AuthController {
     async login(loginDto) {
         return this.authService.login(loginDto);
     }
+    async verify2FA(verify2FADto) {
+        return this.authService.verify2FA(verify2FADto);
+    }
     async forgotPassword(forgotPasswordDto) {
         return this.authService.forgotPassword(forgotPasswordDto);
     }
@@ -108,6 +111,34 @@ __decorate([
     __metadata("design:paramtypes", [auth_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('verify-2fa'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Verify 2FA OTP code',
+        description: 'Verify the 2FA OTP code sent to user email upon login. Returns JWT token on success.'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: '2FA verification successful',
+        example: {
+            user: {
+                id: 'user_123',
+                email: 'john@example.com',
+                firstName: 'John',
+                lastName: 'Doe',
+                role: 'USER'
+            },
+            accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+            tokenType: 'Bearer'
+        }
+    }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid or expired 2FA code' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.Verify2FADto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verify2FA", null);
 __decorate([
     (0, common_1.Post)('forgot-password'),
     (0, swagger_1.ApiOperation)({

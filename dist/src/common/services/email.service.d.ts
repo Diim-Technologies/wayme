@@ -27,4 +27,5 @@ export declare class EmailService {
     sendKycSubmittedNotification(email: string, firstName: string): Promise<boolean>;
     sendKycApprovedNotification(email: string, firstName: string): Promise<boolean>;
     sendKycRejectedNotification(email: string, firstName: string, reason: string): Promise<boolean>;
+    sendLogin2FAOTP(email: string, otp: string, firstName: string): Promise<boolean>;
 }

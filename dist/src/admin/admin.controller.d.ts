@@ -45,6 +45,7 @@ export declare class AdminController {
         role: import("../enums/user.enum").UserRole;
         isVerified: boolean;
         kycStatus: import("../enums/user.enum").KycStatus;
+        isTwoFactorEnabled: boolean;
         createdAt: Date;
         updatedAt: Date;
         notifications: import("../entities").Notification[];

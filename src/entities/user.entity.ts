@@ -64,6 +64,9 @@ export class User {
   })
   kycStatus: KycStatus;
 
+  @Column({ default: true })
+  isTwoFactorEnabled: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -85,6 +85,65 @@ let AuthService = class AuthService {
         if (!isPasswordValid) {
             throw new common_1.UnauthorizedException('Invalid email or password');
         }
+        if (user.isTwoFactorEnabled) {
+            const otp = this.generateOTP();
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+            const otpEntity = this.otpRepository.create({
+                userId: user.id,
+                code: otp,
+                type: common_enum_1.OTPType.TWO_FACTOR_AUTH,
+                expiresAt,
+            });
+            await this.otpRepository.save(otpEntity);
+            try {
+                await this.emailService.sendLogin2FAOTP(email, otp, user.firstName);
+            }
+            catch (error) {
+                console.log('Failed to send 2FA OTP:', error);
+            }
+            return {
+                message: '2FA_REQUIRED',
+                email: user.email,
+                twoFactorEnabled: true,
+            };
+        }
+        const payload = { sub: user.id, email: user.email, role: user.role };
+        const accessToken = this.jwtService.sign(payload);
+        return {
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                phoneNumber: user.phoneNumber,
+                role: user.role,
+                isVerified: user.isVerified,
+                kycStatus: user.kycStatus,
+                createdAt: user.createdAt,
+            },
+            accessToken,
+        };
+    }
+    async verify2FA(verify2FADto) {
+        const { email, code } = verify2FADto;
+        const user = await this.userRepository.findOne({
+            where: { email },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const otp = await this.otpRepository.findOne({
+            where: {
+                userId: user.id,
+                code,
+                type: common_enum_1.OTPType.TWO_FACTOR_AUTH,
+                isUsed: false,
+            },
+        });
+        if (!otp || otp.expiresAt < new Date()) {
+            throw new common_1.BadRequestException('Invalid or expired 2FA code');
+        }
+        await this.otpRepository.update({ id: otp.id }, { isUsed: true });
         const payload = { sub: user.id, email: user.email, role: user.role };
         const accessToken = this.jwtService.sign(payload);
         return {
