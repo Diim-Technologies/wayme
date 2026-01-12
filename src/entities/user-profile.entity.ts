@@ -50,6 +50,18 @@ export class UserProfile {
   @Column({ nullable: true })
   selfieUrl: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  kycSubmittedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  kycReviewedAt: Date;
+
+  @Column({ nullable: true })
+  kycReviewedBy: string;
+
+  @Column({ type: 'text', nullable: true })
+  kycRejectionReason: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

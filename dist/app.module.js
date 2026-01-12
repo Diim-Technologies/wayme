@@ -21,6 +21,7 @@ const notifications_module_1 = require("./notifications/notifications.module");
 const admin_module_1 = require("./admin/admin.module");
 const beneficiaries_module_1 = require("./beneficiaries/beneficiaries.module");
 const disputes_module_1 = require("./disputes/disputes.module");
+const kyc_module_1 = require("./kyc/kyc.module");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 let AppModule = class AppModule {
@@ -52,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             admin_module_1.AdminModule,
             beneficiaries_module_1.BeneficiariesModule,
             disputes_module_1.DisputesModule,
+            kyc_module_1.KycModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

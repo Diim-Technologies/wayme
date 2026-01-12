@@ -13,71 +13,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const nodemailer = require("nodemailer");
+const resend_1 = require("resend");
 let EmailService = EmailService_1 = class EmailService {
     constructor(configService) {
         this.configService = configService;
         this.logger = new common_1.Logger(EmailService_1.name);
-        this.initializeTransporter();
+        this.initializeResend();
     }
-    initializeTransporter() {
-        const host = this.configService.get('SMTP_HOST');
-        const port = this.configService.get('SMTP_PORT');
-        const user = this.configService.get('SMTP_USER');
-        const pass = this.configService.get('SMTP_PASS');
-        if (!host || !user || !pass) {
-            this.logger.warn('SMTP configuration is missing. Email service will not work.');
+    initializeResend() {
+        const apiKey = this.configService.get('RESEND_API_KEY');
+        if (!apiKey) {
+            this.logger.warn('RESEND_API_KEY is missing. Email service will not work.');
             return;
         }
-        const portNumber = parseInt(port) || 587;
-        const isSecure = portNumber === 465;
-        this.transporter = nodemailer.createTransport({
-            host,
-            port: portNumber,
-            secure: isSecure,
-            auth: {
-                user,
-                pass,
-            },
-            connectionTimeout: 10000,
-            greetingTimeout: 10000,
-            socketTimeout: 10000,
-            pool: true,
-            maxConnections: 5,
-            maxMessages: 100,
-            tls: {
-                rejectUnauthorized: false,
-                minVersion: 'TLSv1.2',
-            },
-            debug: this.configService.get('NODE_ENV') === 'development',
-            logger: this.configService.get('NODE_ENV') === 'development',
-        });
-        this.transporter.verify((error, success) => {
-            if (error) {
-                this.logger.error('SMTP connection verification failed:', error);
-            }
-            else {
-                this.logger.log('SMTP transporter initialized and verified successfully');
-            }
-        });
+        this.resend = new resend_1.Resend(apiKey);
+        this.logger.log('Resend email service initialized successfully');
     }
     async sendMail(to, subject, html) {
-        if (!this.transporter) {
-            this.logger.error('Email transporter not initialized. Cannot send email.');
+        if (!this.resend) {
+            this.logger.error('Resend client not initialized. Cannot send email.');
             return false;
         }
-        const from = this.configService.get('FROM_EMAIL', 'noreply@wayame.com');
+        const from = this.configService.get('FROM_EMAIL', 'Wayame <noreply@wayame.com>');
         try {
-            await this.transporter.sendMail({
+            const { data, error } = await this.resend.emails.send({
                 from,
-                to,
+                to: Array.isArray(to) ? to : [to],
                 subject,
                 html,
             });
+            if (error) {
+                this.logger.error('Failed to send email via Resend:', error);
+                return false;
+            }
+            this.logger.log(`Email sent successfully via Resend. ID: ${data?.id}`);
             return true;
         }
         catch (error) {
-            this.logger.error(`Failed to send email to ${to}:`, error);
+            this.logger.error('Error sending email via Resend:', error);
             return false;
         }
     }
@@ -694,6 +667,87 @@ let EmailService = EmailService_1 = class EmailService {
             this.logger.log(`Dispute closed notification sent to ${email}`);
         }
         return success;
+    }
+    async sendKycSubmittedNotification(email, firstName) {
+        const subject = 'KYC Documents Received - Wayame';
+        const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2;">Wayame</h1>
+        </div>
+        <h2 style="color: #333;">Hello ${firstName},</h2>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          We have successfully received your KYC (Know Your Customer) documents. Our verification team is now reviewing your application.
+        </p>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          This process typically takes <strong>24-48 business hours</strong>. We will notify you via email as soon as the review is complete.
+        </p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #777; font-size: 14px;">
+            <strong>Status:</strong> Under Review<br>
+            <strong>Date Submitted:</strong> ${new Date().toLocaleDateString()}
+          </p>
+        </div>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Thank you for choosing Wayame!
+        </p>
+      </div>
+    `;
+        return this.sendMail(email, subject, html);
+    }
+    async sendKycApprovedNotification(email, firstName) {
+        const subject = 'KYC Verification Successful! - Wayame';
+        const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2;">Wayame</h1>
+        </div>
+        <h2 style="color: #333;">Congratulations ${firstName}!</h2>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Your identity verification (KYC) has been successfully completed and <strong>approved</strong>.
+        </p>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          You now have full access to all Wayame features, including higher transfer limits and enhanced security.
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.configService.get('FRONTEND_URL')}/dashboard" style="background-color: #4a90e2; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
+        </div>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          If you have any questions, our support team is always here to help.
+        </p>
+      </div>
+    `;
+        return this.sendMail(email, subject, html);
+    }
+    async sendKycRejectedNotification(email, firstName, reason) {
+        const subject = 'Action Required: KYC Verification Update - Wayame';
+        const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h1 style="color: #4a90e2;">Wayame</h1>
+        </div>
+        <h2 style="color: #333;">Hello ${firstName},</h2>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Our verification team has completed the review of your KYC documents, but unfortunately, we were <strong>unable to approve</strong> your application at this time.
+        </p>
+        <div style="background-color: #fff5f5; border-left: 4px solid #e53e3e; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; color: #c53030; font-size: 16px;">
+            <strong>Reason for Rejection:</strong><br>
+            ${reason}
+          </p>
+        </div>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Please log in to your account to upload new documents or correct the issues mentioned above.
+        </p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${this.configService.get('FRONTEND_URL')}/kyc" style="background-color: #4a90e2; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Retry Verification</a>
+        </div>
+        <p style="color: #555; font-size: 16px; line-height: 1.5;">
+          Thank you for your patience and cooperation.
+        </p>
+      </div>
+    `;
+        return this.sendMail(email, subject, html);
     }
 };
 exports.EmailService = EmailService;

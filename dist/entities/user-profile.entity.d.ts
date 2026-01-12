@@ -13,6 +13,10 @@ export declare class UserProfile {
     idNumber: string;
     idImageUrl: string;
     selfieUrl: string;
+    kycSubmittedAt: Date;
+    kycReviewedAt: Date;
+    kycReviewedBy: string;
+    kycRejectionReason: string;
     createdAt: Date;
     updatedAt: Date;
     user: User;

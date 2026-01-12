@@ -68,6 +68,22 @@ __decorate([
     __metadata("design:type", String)
 ], UserProfile.prototype, "selfieUrl", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], UserProfile.prototype, "kycSubmittedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], UserProfile.prototype, "kycReviewedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], UserProfile.prototype, "kycReviewedBy", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], UserProfile.prototype, "kycRejectionReason", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], UserProfile.prototype, "createdAt", void 0);

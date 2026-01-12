@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { BeneficiariesModule } from './beneficiaries/beneficiaries.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { KycModule } from './kyc/kyc.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -40,6 +41,7 @@ import { AppService } from './app.service';
     AdminModule,
     BeneficiariesModule,
     DisputesModule,
+    KycModule,
   ],
   controllers: [AppController],
   providers: [AppService],

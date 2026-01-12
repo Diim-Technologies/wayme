@@ -5,9 +5,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as compression from 'compression';
 import { AppModule } from './app.module';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // Enable raw body for webhooks
   });
 
@@ -35,6 +37,11 @@ async function bootstrap() {
 
   // API prefix
   app.setGlobalPrefix('api/v1');
+
+  // Serve static files
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads',
+  });
 
   // Swagger API Documentation Setup
   const config = new DocumentBuilder()
@@ -65,6 +72,8 @@ async function bootstrap() {
     .addTag('Beneficiaries', 'Saved beneficiary management')
     .addTag('Notifications', 'User notifications and alerts')
     .addTag('Admin', 'Administrative operations (Admin access required)')
+    .addTag('KYC', 'Know Your Customer verification')
+    .addTag('Admin - KYC', 'Administrative KYC operations')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {

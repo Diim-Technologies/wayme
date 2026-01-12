@@ -7,6 +7,7 @@ const swagger_1 = require("@nestjs/swagger");
 const helmet_1 = require("helmet");
 const compression = require("compression");
 const app_module_1 = require("./app.module");
+const path_1 = require("path");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         rawBody: true,
@@ -24,6 +25,9 @@ async function bootstrap() {
         transform: true,
     }));
     app.setGlobalPrefix('api/v1');
+    app.useStaticAssets((0, path_1.join)(process.cwd(), 'uploads'), {
+        prefix: '/uploads',
+    });
     const config = new swagger_1.DocumentBuilder()
         .setTitle('Wayame API')
         .setDescription(`
@@ -48,6 +52,8 @@ async function bootstrap() {
         .addTag('Beneficiaries', 'Saved beneficiary management')
         .addTag('Notifications', 'User notifications and alerts')
         .addTag('Admin', 'Administrative operations (Admin access required)')
+        .addTag('KYC', 'Know Your Customer verification')
+        .addTag('Admin - KYC', 'Administrative KYC operations')
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config, {
         operationIdFactory: (controllerKey, methodKey) => methodKey,

@@ -9,6 +9,7 @@ var UserRole;
 })(UserRole || (exports.UserRole = UserRole = {}));
 var KycStatus;
 (function (KycStatus) {
+    KycStatus["NOT_SUBMITTED"] = "NOT_SUBMITTED";
     KycStatus["PENDING"] = "PENDING";
     KycStatus["APPROVED"] = "APPROVED";
     KycStatus["REJECTED"] = "REJECTED";

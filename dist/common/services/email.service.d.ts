@@ -2,9 +2,9 @@ import { ConfigService } from '@nestjs/config';
 export declare class EmailService {
     private configService;
     private readonly logger;
-    private transporter;
+    private resend;
     constructor(configService: ConfigService);
-    private initializeTransporter;
+    private initializeResend;
     private sendMail;
     sendPasswordResetOTP(email: string, otp: string, firstName: string): Promise<boolean>;
     sendPasswordChangeConfirmation(email: string, firstName: string): Promise<boolean>;
@@ -24,4 +24,7 @@ export declare class EmailService {
     sendDisputeReplyNotification(email: string, disputeId: string, replyFrom: string, isAdmin: boolean): Promise<boolean>;
     sendDisputeStatusUpdateNotification(email: string, disputeId: string, status: string, firstName: string): Promise<boolean>;
     sendDisputeClosedNotification(email: string, disputeId: string, resolution: string, firstName: string): Promise<boolean>;
+    sendKycSubmittedNotification(email: string, firstName: string): Promise<boolean>;
+    sendKycApprovedNotification(email: string, firstName: string): Promise<boolean>;
+    sendKycRejectedNotification(email: string, firstName: string, reason: string): Promise<boolean>;
 }

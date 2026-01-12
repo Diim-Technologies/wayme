@@ -29,6 +29,10 @@ export declare class UsersController {
         idNumber: string;
         idImageUrl: string;
         selfieUrl: string;
+        kycSubmittedAt: Date;
+        kycReviewedAt: Date;
+        kycReviewedBy: string;
+        kycRejectionReason: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
