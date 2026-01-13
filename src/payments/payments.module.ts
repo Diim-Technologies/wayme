@@ -7,7 +7,9 @@ import { Transaction } from '../entities/transaction.entity';
 import { StripePaymentMethod } from '../entities/stripe-payment-method.entity';
 import { User } from '../entities/user.entity';
 import { StripeService } from '../common/services/stripe.service';
+import { StripeWebhookService } from '../common/services/stripe-webhook.service';
 import { TransfersModule } from '../transfers/transfers.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
     imports: [
@@ -18,9 +20,10 @@ import { TransfersModule } from '../transfers/transfers.module';
             User,
         ]),
         TransfersModule,
+        CommonModule,
     ],
     controllers: [PaymentsController],
-    providers: [PaymentsService, StripeService],
+    providers: [PaymentsService],
     exports: [PaymentsService],
 })
 export class PaymentsModule { }

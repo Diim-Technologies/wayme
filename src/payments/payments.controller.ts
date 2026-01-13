@@ -8,6 +8,8 @@ import {
   Headers,
   RawBodyRequest,
   Req,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,6 +19,8 @@ import { CreatePaymentDto, PaymentIntentResponseDto } from './dto/create-payment
 @ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
+
   constructor(private readonly paymentsService: PaymentsService) { }
 
   @Post('create-intent')
@@ -45,11 +49,22 @@ export class PaymentsController {
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   async handleWebhook(
     @Headers('stripe-signature') signature: string,
-    @Req() req: RawBodyRequest<Request>,
+    @Req() req: RawBodyRequest<any>,
   ) {
-    // Note: This requires raw body parser configuration
-    // The webhook will be handled by a separate webhook service
-    // For now, this is a placeholder
-    return { received: true };
+    if (!signature) {
+      throw new BadRequestException('Missing stripe-signature header');
+    }
+
+    try {
+      const event = this.paymentsService.constructWebhookEvent(
+        req.rawBody,
+        signature,
+      );
+      await this.paymentsService.handleWebhookEvent(event);
+      return { received: true };
+    } catch (error) {
+      this.logger.error(`Webhook error: ${error.message}`);
+      throw new BadRequestException(`Webhook Error: ${error.message}`);
+    }
   }
 }

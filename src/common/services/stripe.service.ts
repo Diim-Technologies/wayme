@@ -128,15 +128,18 @@ export class StripeService {
     }
   }
 
-  async listCustomerPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]> {
+  async listCustomerPaymentMethods(
+    customerId: string,
+    type: Stripe.PaymentMethodListParams.Type = 'card',
+  ): Promise<Stripe.PaymentMethod[]> {
     try {
       const paymentMethods = await this.stripe.paymentMethods.list({
         customer: customerId,
-        type: 'card',
+        type: type,
       });
       return paymentMethods.data;
     } catch (error) {
-      this.logger.error('Failed to list payment methods:', error);
+      this.logger.error(`Failed to list ${type} payment methods:`, error);
       return [];
     }
   }

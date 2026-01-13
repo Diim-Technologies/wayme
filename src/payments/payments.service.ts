@@ -6,6 +6,7 @@ import { Transaction } from '../entities/transaction.entity';
 import { StripePaymentMethod } from '../entities/stripe-payment-method.entity';
 import { TransferStatus, TransactionType, TransactionStatus } from '../enums/common.enum';
 import { StripeService } from '../common/services/stripe.service';
+import { StripeWebhookService } from '../common/services/stripe-webhook.service';
 import { TransfersService } from '../transfers/transfers.service';
 import { CreatePaymentDto, PaymentIntentResponseDto } from './dto/create-payment.dto';
 
@@ -21,6 +22,7 @@ export class PaymentsService {
         @InjectRepository(StripePaymentMethod)
         private stripePaymentMethodRepository: Repository<StripePaymentMethod>,
         private stripeService: StripeService,
+        private stripeWebhookService: StripeWebhookService,
         private transfersService: TransfersService,
     ) { }
 
@@ -133,6 +135,14 @@ export class PaymentsService {
             where: { isActive: true },
             order: { category: 'ASC', displayName: 'ASC' },
         });
+    }
+
+    constructWebhookEvent(payload: string | Buffer, signature: string) {
+        return this.stripeService.constructWebhookEvent(payload, signature);
+    }
+
+    async handleWebhookEvent(event: any) {
+        return this.stripeWebhookService.handleWebhookEvent(event);
     }
 
     async handlePaymentFailure(paymentIntentId: string): Promise<void> {
