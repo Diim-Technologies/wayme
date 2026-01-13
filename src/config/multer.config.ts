@@ -27,13 +27,16 @@ export const multerConfig = {
             'image/jpeg',
             'image/jpg',
             'image/png',
+            'image/heic',
+            'image/heif',
+            'image/webp',
             'application/pdf',
         ];
 
         if (allowedMimeTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.'), false);
+            cb(new Error('Invalid file type. Only JPEG, PNG, HEIC, WEBP and PDF files are allowed.'), false);
         }
     },
     limits: {
