@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 // KYC submission and verification logic
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, Not } from 'typeorm';
+import { Repository, DataSource, Not, In } from 'typeorm';
 import { KycDocument, User, UserProfile } from '../entities';
 import { DocumentType } from '../enums/kyc.enum';
 import { KycStatus } from '../enums/user.enum';
@@ -129,6 +129,23 @@ export class KycService {
       message: 'KYC submitted successfully. Your documents are under review.',
       status: KycStatus.PENDING,
     };
+  }
+
+  async submitFullKyc(userId: string, idFile: Express.Multer.File, selfieFile: Express.Multer.File | undefined, documentType: DocumentType) {
+    if (!idFile) {
+      throw new BadRequestException('Government ID file is required');
+    }
+
+    // Upload ID document
+    await this.uploadDocument(userId, idFile, documentType);
+
+    // Upload selfie if provided
+    if (selfieFile) {
+      await this.uploadDocument(userId, selfieFile, DocumentType.SELFIE);
+    }
+
+    // Submit for review
+    return this.submitKyc(userId);
   }
 
   async getMyDocuments(userId: string) {
@@ -283,11 +300,28 @@ export class KycService {
         isVerified: true,
       });
 
+      // Get the documents to update profile
+      const govDoc = await manager.findOne(KycDocument, {
+        where: {
+          userId,
+          documentType: In([DocumentType.PASSPORT, DocumentType.NATIONAL_ID, DocumentType.RESIDENCE_PERMIT])
+        },
+        order: { uploadedAt: 'DESC' }
+      });
+
+      const selfieDoc = await manager.findOne(KycDocument, {
+        where: { userId, documentType: DocumentType.SELFIE },
+        order: { uploadedAt: 'DESC' }
+      });
+
       // Update profile
       await manager.update(UserProfile, { userId }, {
         kycReviewedAt: new Date(),
         kycReviewedBy: adminId,
         kycRejectionReason: null,
+        idType: govDoc?.documentType,
+        idImageUrl: govDoc?.fileUrl,
+        selfieUrl: selfieDoc?.fileUrl,
       });
 
       // Mark all documents as verified

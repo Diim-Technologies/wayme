@@ -3,11 +3,11 @@ import { IsEnum, IsString, MinLength, IsOptional } from 'class-validator';
 import { DocumentType } from '../../enums/kyc.enum';
 import { KycStatus } from '../../enums/user.enum';
 
-export class UploadDocumentDto {
+export class SubmitKycFullDto {
     @ApiProperty({
         example: 'NATIONAL_ID',
-        enum: DocumentType,
-        description: 'Type of document being uploaded'
+        enum: [DocumentType.PASSPORT, DocumentType.NATIONAL_ID, DocumentType.RESIDENCE_PERMIT],
+        description: 'Type of government ID being uploaded'
     })
     @IsEnum(DocumentType)
     documentType: DocumentType;

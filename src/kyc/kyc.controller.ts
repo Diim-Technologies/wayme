@@ -9,12 +9,13 @@ import {
     Request,
     UseInterceptors,
     UploadedFile,
+    UploadedFiles,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiQuery } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiQuery, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { KycService } from './kyc.service';
 import {
-    UploadDocumentDto,
+    SubmitKycFullDto,
     SubmitKycDto,
     RejectKycDto,
     KycFilterDto,
@@ -32,36 +33,44 @@ import { DocumentType } from '../enums/kyc.enum';
 export class KycController {
     constructor(private kycService: KycService) { }
 
-    @Post('upload/government-id')
-    @UseInterceptors(FileInterceptor('file', multerConfig))
-    @ApiConsumes('multipart/form-data')
-    @ApiOperation({ summary: 'Upload government ID (Passport, National ID, Residence Permit)' })
-    async uploadGovernmentId(
-        @Request() req,
-        @UploadedFile() file: Express.Multer.File,
-        @Body() dto: UploadDocumentDto,
-    ) {
-        if (dto.documentType === DocumentType.SELFIE) {
-            return { message: 'Invalid document type for this endpoint. Use /upload/selfie' };
-        }
-        return this.kycService.uploadDocument(req.user.id, file, dto.documentType);
-    }
-
-    @Post('upload/selfie')
-    @UseInterceptors(FileInterceptor('file', multerConfig))
-    @ApiConsumes('multipart/form-data')
-    @ApiOperation({ summary: 'Upload selfie (Optional but Recommended)' })
-    async uploadSelfie(
-        @Request() req,
-        @UploadedFile() file: Express.Multer.File,
-    ) {
-        return this.kycService.uploadDocument(req.user.id, file, DocumentType.SELFIE);
-    }
-
     @Post('submit')
-    @ApiOperation({ summary: 'Submit KYC for review' })
-    async submitKyc(@Request() req) {
-        return this.kycService.submitKyc(req.user.id);
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'idFile', maxCount: 1 },
+        { name: 'selfieFile', maxCount: 1 },
+    ], multerConfig))
+    @ApiConsumes('multipart/form-data')
+    @ApiOperation({ summary: 'Submit full KYC (ID and Optional Selfie)' })
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                documentType: {
+                    type: 'string',
+                    enum: [DocumentType.PASSPORT, DocumentType.NATIONAL_ID, DocumentType.RESIDENCE_PERMIT],
+                    description: 'Type of government ID being uploaded'
+                },
+                idFile: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Government ID file'
+                },
+                selfieFile: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Selfie photo (Optional)'
+                },
+            },
+            required: ['documentType', 'idFile'],
+        },
+    })
+    async submitKyc(
+        @Request() req,
+        @UploadedFiles() files: { idFile?: Express.Multer.File[], selfieFile?: Express.Multer.File[] },
+        @Body() dto: SubmitKycFullDto,
+    ) {
+        const idFile = files.idFile ? files.idFile[0] : null;
+        const selfieFile = files.selfieFile ? files.selfieFile[0] : null;
+        return this.kycService.submitFullKyc(req.user.id, idFile, selfieFile, dto.documentType);
     }
 
     @Get('my-documents')
