@@ -34,5 +34,6 @@ export default new DataSource({
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
   logging: true,
+  migrationsTransactionMode: 'each',
   ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false, // Enabled for Railway connection
 });
