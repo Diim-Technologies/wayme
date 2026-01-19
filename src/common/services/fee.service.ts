@@ -12,60 +12,18 @@ export class FeeService {
     private feeRepository: Repository<Fee>,
   ) { }
 
-  async calculateTransferFee(amount: Decimal, transferType: string = 'DOMESTIC', paymentMethod: string = 'BANK_TRANSFER', currency: string = 'NGN'): Promise<Decimal> {
+  async calculateTransferFee(amount: Decimal, currency: string = 'NGN'): Promise<Decimal> {
     try {
-      // Try to find a specific fee configuration matching all criteria
-      let feeConfig = await this.feeRepository.findOne({
+      const feeConfig = await this.feeRepository.findOne({
         where: {
           type: FeeType.TRANSFER_FEE,
           isActive: true,
           currency: currency,
-          transferType: transferType,
-          paymentMethod: paymentMethod,
         },
       });
 
-      // If no exact match, try finding by transferType only
       if (!feeConfig) {
-        feeConfig = await this.feeRepository.findOne({
-          where: {
-            type: FeeType.TRANSFER_FEE,
-            isActive: true,
-            currency: currency,
-            transferType: transferType,
-            paymentMethod: null,
-          },
-        });
-      }
-
-      // If still no match, try finding by paymentMethod only
-      if (!feeConfig) {
-        feeConfig = await this.feeRepository.findOne({
-          where: {
-            type: FeeType.TRANSFER_FEE,
-            isActive: true,
-            currency: currency,
-            transferType: null,
-            paymentMethod: paymentMethod,
-          },
-        });
-      }
-
-      // If still no match, try finding a default configuration (both null)
-      if (!feeConfig) {
-        feeConfig = await this.feeRepository.findOne({
-          where: {
-            type: FeeType.TRANSFER_FEE,
-            isActive: true,
-            currency: currency,
-            transferType: null,
-            paymentMethod: null,
-          },
-        });
-      }
-
-      if (!feeConfig) {
-        console.warn(`No fee configuration found for transferType: ${transferType}, paymentMethod: ${paymentMethod}, currency: ${currency}`);
+        console.warn(`No fee configuration found for currency: ${currency}`);
         return new Decimal(0);
       }
 
@@ -141,8 +99,6 @@ export class FeeService {
     type: string;
     percentage?: number;
     fixedAmount?: number;
-    transferType?: string;
-    paymentMethod?: string;
     currency?: string;
   }) {
     const feeConfig = this.feeRepository.create({
@@ -150,8 +106,6 @@ export class FeeService {
       type: data.type as FeeType,
       percentageRate: data.percentage,
       fixedAmount: data.fixedAmount,
-      transferType: data.transferType,
-      paymentMethod: data.paymentMethod,
       currency: data.currency || 'NGN',
     });
 
@@ -161,8 +115,6 @@ export class FeeService {
   async updateFeeConfiguration(id: string, data: {
     percentage?: number;
     fixedAmount?: number;
-    transferType?: string;
-    paymentMethod?: string;
     isActive?: boolean;
   }) {
     await this.feeRepository.update(
@@ -170,8 +122,6 @@ export class FeeService {
       {
         percentageRate: data.percentage,
         fixedAmount: data.fixedAmount,
-        transferType: data.transferType,
-        paymentMethod: data.paymentMethod,
         isActive: data.isActive,
       }
     );

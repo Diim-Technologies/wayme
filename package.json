@@ -29,7 +29,9 @@
     "migrate:stripe-payment-methods": "ts-node src/scripts/migrate-stripe-payment-methods.ts",
     "verify:stripe-payment-methods": "ts-node src/scripts/verify-stripe-payment-methods.ts",
     "seed:stripe-payment-methods": "ts-node src/scripts/seed-stripe-payment-methods.ts",
-    "seed:test-payment-methods": "ts-node src/scripts/seed-test-payment-methods.ts"
+    "seed:test-payment-methods": "ts-node src/scripts/seed-test-payment-methods.ts",
+    "seed:fee-configurations": "ts-node src/scripts/seed-fee-configurations.ts",
+    "clear:fees": "ts-node src/scripts/clear-fees.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -39,8 +39,6 @@ export class TransfersService {
         // Calculate fees
         const transferFee = await this.feeService.calculateTransferFee(
             amount,
-            dto.fromCurrency === dto.toCurrency ? 'DOMESTIC' : 'INTERNATIONAL',
-            dto.paymentMethod || 'CARD',
             dto.fromCurrency,
         );
 
