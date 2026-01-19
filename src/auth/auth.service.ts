@@ -475,9 +475,10 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired verification code');
     }
 
+
     // Update user verification status and mark OTP as used in a transaction
     await this.dataSource.transaction(async (manager) => {
-      await manager.update(User, { id: user.id }, { isVerified: true });
+      await manager.update(User, { id: user.id }, { isVerified: true, isEmailVerified: true });
       await manager.update(OTP, { id: otp.id }, { isUsed: true });
     });
 

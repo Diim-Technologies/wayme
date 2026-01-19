@@ -54,8 +54,12 @@ export class User {
   })
   role: UserRole;
 
+
   @Column({ default: false })
   isVerified: boolean;
+
+  @Column({ default: false })
+  isEmailVerified: boolean;
 
   @Column({
     type: 'enum',
