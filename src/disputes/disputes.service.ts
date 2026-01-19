@@ -23,13 +23,25 @@ export class DisputesService {
     ) { }
 
     async createDispute(userId: string, createDisputeDto: CreateDisputeDto) {
-        const { transactionId, category, subject, description, priority } = createDisputeDto;
 
-        // Verify transaction exists and belongs to user
-        const transaction = await this.transactionRepository.findOne({
-            where: { id: transactionId },
-            relations: ['transfer'],
-        });
+        let { transactionId, category, subject, description, priority } = createDisputeDto;
+
+        // Try to find transaction by UUID or reference
+        let transaction = null;
+        if (/^[0-9a-fA-F-]{36}$/.test(transactionId)) {
+            transaction = await this.transactionRepository.findOne({
+                where: { id: transactionId },
+                relations: ['transfer'],
+            });
+        } else {
+            transaction = await this.transactionRepository.findOne({
+                where: { reference: transactionId },
+                relations: ['transfer'],
+            });
+            if (transaction) {
+                transactionId = transaction.id;
+            }
+        }
 
         if (!transaction) {
             throw new NotFoundException('Transaction not found');
