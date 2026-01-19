@@ -54,7 +54,7 @@ export class UsersService {
 
     if (profile) {
       // Update existing profile
-      await this.userProfileRepository.update({ userId }, updateProfileDto);
+        await this.userProfileRepository.update({ userId }, updateProfileDto as Partial<UserProfile>);
       profile = await this.userProfileRepository.findOne({
         where: { userId },
       });
