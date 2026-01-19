@@ -5,7 +5,8 @@ import { DisputeCategory, DisputePriority, DisputeStatus } from '../../enums/dis
 export class CreateDisputeDto {
     @ApiProperty({
         example: 'trans_123 or uuid',
-        description: 'Transaction ID (UUID) or reference string to dispute'
+        description: 'Transaction ID (UUID) or reference string to dispute',
+        type: String
     })
     @IsString()
     transactionId: string;
@@ -13,14 +14,16 @@ export class CreateDisputeDto {
     @ApiProperty({
         example: 'DELAYED_TRANSFER',
         enum: DisputeCategory,
-        description: 'Category of the dispute'
+        description: 'Category of the dispute',
+        enumName: 'DisputeCategory',
     })
     @IsEnum(DisputeCategory)
     category: DisputeCategory;
 
     @ApiProperty({
         example: 'Transfer not received',
-        description: 'Brief subject of the dispute'
+        description: 'Brief subject of the dispute',
+        minLength: 5
     })
     @IsString()
     @MinLength(5)
@@ -28,7 +31,8 @@ export class CreateDisputeDto {
 
     @ApiProperty({
         example: 'I sent money 3 days ago but the recipient has not received it yet. Transaction reference: TXN123456',
-        description: 'Detailed description of the issue'
+        description: 'Detailed description of the issue',
+        minLength: 20
     })
     @IsString()
     @MinLength(20)
@@ -38,7 +42,8 @@ export class CreateDisputeDto {
         example: 'HIGH',
         enum: DisputePriority,
         description: 'Priority level of the dispute',
-        default: 'MEDIUM'
+        default: 'MEDIUM',
+        enumName: 'DisputePriority',
     })
     @IsOptional()
     @IsEnum(DisputePriority)
