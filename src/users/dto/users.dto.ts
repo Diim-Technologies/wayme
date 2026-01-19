@@ -1,59 +1,26 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
+
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional({ example: '1990-01-01' })
-  @IsOptional()
-  @IsDateString()
-  dateOfBirth?: string;
+  @ApiProperty({ example: 'john.doe@example.com' })
+  @IsEmail()
+  email: string;
 
-  @ApiPropertyOptional({ example: '123 Lagos Street' })
-  @IsOptional()
+  @ApiProperty({ example: 'John' })
   @IsString()
-  address?: string;
+  @MinLength(2)
+  firstName: string;
 
-  @ApiPropertyOptional({ example: 'Lagos' })
-  @IsOptional()
+  @ApiProperty({ example: 'Doe' })
   @IsString()
-  city?: string;
+  @MinLength(2)
+  lastName: string;
 
-  @ApiPropertyOptional({ example: 'Lagos State' })
-  @IsOptional()
+  @ApiProperty({ example: '+2348123456789', description: 'Phone number in E.164 format (e.g., +2348123456789 for Nigeria, +1234567890 for US)' })
   @IsString()
-  state?: string;
-
-  @ApiPropertyOptional({ example: 'NG' })
-  @IsOptional()
-  @IsString()
-  country?: string;
-
-  @ApiPropertyOptional({ example: '100001' })
-  @IsOptional()
-  @IsString()
-  postalCode?: string;
-
-  @ApiPropertyOptional({ example: 'Software Engineer' })
-  @IsOptional()
-  @IsString()
-  occupation?: string;
-
-  @ApiPropertyOptional({ example: 'NIN' })
-  @IsOptional()
-  @IsString()
-  idType?: string;
-
-  @ApiPropertyOptional({ example: '12345678901' })
-  @IsOptional()
-  @IsString()
-  idNumber?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/id-image.jpg' })
-  @IsOptional()
-  @IsString()
-  idImageUrl?: string;
-
-  @ApiPropertyOptional({ example: 'https://example.com/selfie.jpg' })
-  @IsOptional()
-  @IsString()
-  selfieUrl?: string;
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'Phone number must be in valid international format (E.164): start with + followed by country code and number (e.g., +2348123456789)',
+  })
+  phoneNumber: string;
 }
