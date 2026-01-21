@@ -93,12 +93,8 @@ export class UsersService {
       if (!updatedProfile) {
         // Fallback if profile was just created but something went wrong or if we need to return something valid even if profile finding fails (though commit happened)
         return {
-          ...profileData,
-          userId,
-          user: {
-            ...user,
-            ...userUpdates
-          }
+          message: 'Profile updated successfully',
+
         }
       }
 
