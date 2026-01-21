@@ -32,14 +32,14 @@ export class DisputesController {
     @Post()
     @ApiOperation({
         summary: 'Create a new dispute',
-        description: 'Create a dispute for a transaction. Users can only create disputes for their own transactions.',
+        description: 'Create a dispute for a transfer. Users can only create disputes for their own transfers.',
     })
     @ApiResponse({
         status: 201,
         description: 'Dispute created successfully',
         example: {
             id: 'dispute_123',
-            transactionId: 'trans_456',
+            transferId: 'trans_456',
             userId: 'user_789',
             category: 'DELAYED_TRANSFER',
             status: 'OPEN',
@@ -50,8 +50,8 @@ export class DisputesController {
         },
     })
     @ApiResponse({ status: 400, description: 'Invalid data or dispute already exists' })
-    @ApiResponse({ status: 403, description: 'Cannot create dispute for this transaction' })
-    @ApiResponse({ status: 404, description: 'Transaction not found' })
+    @ApiResponse({ status: 403, description: 'Cannot create dispute for this transfer' })
+    @ApiResponse({ status: 404, description: 'Transfer not found' })
     async createDispute(@Request() req, @Body() createDisputeDto: CreateDisputeDto) {
         return this.disputesService.createDispute(req.user.id, createDisputeDto);
     }

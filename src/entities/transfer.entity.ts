@@ -14,6 +14,7 @@ import { Transaction } from './transaction.entity';
 import { PaymentMethod } from './payment-method.entity';
 import { User } from './user.entity';
 import { Bank } from './bank.entity';
+import { Dispute } from './dispute.entity';
 
 @Entity('transfers')
 export class Transfer {
@@ -106,4 +107,7 @@ export class Transfer {
   @ManyToOne(() => User, (user) => user.sentTransfers)
   @JoinColumn({ name: 'senderId' })
   sender: User;
+
+  @OneToMany(() => Dispute, (dispute) => dispute.transfer)
+  disputes: Dispute[];
 }

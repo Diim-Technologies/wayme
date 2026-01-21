@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 import { DisputeStatus, DisputeCategory, DisputePriority } from '../enums/dispute.enum';
 import { User } from './user.entity';
-import { Transaction } from './transaction.entity';
+import { Transfer } from './transfer.entity';
 import { DisputeMessage } from './dispute-message.entity';
 import { randomUUID } from 'crypto';
 
@@ -30,7 +30,7 @@ export class Dispute {
 
     @Column()
     @Index()
-    transactionId: string;
+    transferId: string;
 
     @Column()
     @Index()
@@ -80,9 +80,9 @@ export class Dispute {
     @JoinColumn({ name: 'userId' })
     user: User;
 
-    @ManyToOne(() => Transaction, (transaction) => transaction.disputes, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'transactionId' })
-    transaction: Transaction;
+    @ManyToOne(() => Transfer, (transfer) => transfer.disputes, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'transferId' })
+    transfer: Transfer;
 
     @ManyToOne(() => User, { nullable: true })
     @JoinColumn({ name: 'resolvedBy' })

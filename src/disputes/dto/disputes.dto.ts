@@ -5,11 +5,11 @@ import { DisputeCategory, DisputePriority, DisputeStatus } from '../../enums/dis
 export class CreateDisputeDto {
     @ApiProperty({
         example: 'trans_123 or uuid',
-        description: 'Transaction ID (UUID) or reference string to dispute',
+        description: 'Transfer ID (UUID) or reference string to dispute',
         type: String
     })
     @IsString()
-    transactionId: string;
+    transferId: string;
 
     @ApiProperty({
         example: 'DELAYED_TRANSFER',

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Dispute, DisputeMessage, Transaction, User } from '../entities';
+import { Dispute, DisputeMessage, Transfer, User } from '../entities';
 import { DisputeStatus, DisputePriority } from '../enums/dispute.enum';
 import { UserRole } from '../enums/user.enum';
 import { EmailService } from '../common/services/email.service';
@@ -14,8 +14,8 @@ export class DisputesService {
         private disputeRepository: Repository<Dispute>,
         @InjectRepository(DisputeMessage)
         private disputeMessageRepository: Repository<DisputeMessage>,
-        @InjectRepository(Transaction)
-        private transactionRepository: Repository<Transaction>,
+        @InjectRepository(Transfer)
+        private transferRepository: Repository<Transfer>,
         @InjectRepository(User)
         private userRepository: Repository<User>,
         private dataSource: DataSource,
@@ -24,46 +24,44 @@ export class DisputesService {
 
     async createDispute(userId: string, createDisputeDto: CreateDisputeDto) {
 
-        let { transactionId, category, subject, description, priority } = createDisputeDto;
+        let { transferId, category, subject, description, priority } = createDisputeDto;
 
-        // Try to find transaction by UUID or reference
-        let transaction = null;
-        if (/^[0-9a-fA-F-]{36}$/.test(transactionId)) {
-            transaction = await this.transactionRepository.findOne({
-                where: { id: transactionId },
-                relations: ['transfer'],
+        // Try to find transfer by UUID or reference
+        let transfer = null;
+        if (/^[0-9a-fA-F-]{36}$/.test(transferId)) {
+            transfer = await this.transferRepository.findOne({
+                where: { id: transferId },
             });
         } else {
-            transaction = await this.transactionRepository.findOne({
-                where: { reference: transactionId },
-                relations: ['transfer'],
+            transfer = await this.transferRepository.findOne({
+                where: { reference: transferId },
             });
-            if (transaction) {
-                transactionId = transaction.id;
+            if (transfer) {
+                transferId = transfer.id;
             }
         }
 
-        if (!transaction) {
-            throw new NotFoundException('Transaction not found');
+        if (!transfer) {
+            throw new NotFoundException('Transfer not found');
         }
 
-        // Check if user is related to this transaction
-        if (transaction.transfer.senderId !== userId && transaction.transfer.receiverId !== userId) {
-            throw new ForbiddenException('You can only create disputes for your own transactions');
+        // Check if user is related to this transfer
+        if (transfer.senderId !== userId && transfer.receiverId !== userId) {
+            throw new ForbiddenException('You can only create disputes for your own transfers');
         }
 
-        // Check if dispute already exists for this transaction
+        // Check if dispute already exists for this transfer
         const existingDispute = await this.disputeRepository.findOne({
-            where: { transactionId, status: DisputeStatus.OPEN },
+            where: { transferId, status: DisputeStatus.OPEN },
         });
 
         if (existingDispute) {
-            throw new BadRequestException('An open dispute already exists for this transaction');
+            throw new BadRequestException('An open dispute already exists for this transfer');
         }
 
         // Create dispute
         const dispute = this.disputeRepository.create({
-            transactionId,
+            transferId,
             userId,
             category,
             subject,
@@ -102,7 +100,7 @@ export class DisputesService {
 
         const [disputes, total] = await this.disputeRepository.findAndCount({
             where,
-            relations: ['transaction', 'messages', 'messages.user'],
+            relations: ['transfer', 'messages', 'messages.user'],
             order: { createdAt: 'DESC' },
             skip,
             take: limit,
@@ -126,7 +124,7 @@ export class DisputesService {
     async getDisputeById(disputeId: string, userId: string, isAdmin = false) {
         const dispute = await this.disputeRepository.findOne({
             where: { id: disputeId },
-            relations: ['transaction', 'user', 'messages', 'messages.user', 'resolver'],
+            relations: ['transfer', 'user', 'messages', 'messages.user', 'resolver'],
         });
 
         if (!dispute) {
@@ -208,7 +206,7 @@ export class DisputesService {
 
         const [disputes, total] = await this.disputeRepository.findAndCount({
             where,
-            relations: ['transaction', 'user', 'messages', 'resolver'],
+            relations: ['transfer', 'user', 'messages', 'resolver'],
             order: { createdAt: 'DESC' },
             skip,
             take: limit,
