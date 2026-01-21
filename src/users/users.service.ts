@@ -23,6 +23,7 @@ export class UsersService {
         lastName: true,
         phoneNumber: true,
         isVerified: true,
+        isEmailVerified: true,
         kycStatus: true,
         createdAt: true,
         updatedAt: true,
