@@ -155,6 +155,7 @@ export class UsersService {
         phoneNumber: profile.user.phoneNumber,
         isVerified: profile.user.isVerified,
         kycStatus: profile.user.kycStatus,
+        isEmailVerified: profile.user.isEmailVerified,
       },
     };
   }
