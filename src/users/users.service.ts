@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserProfile, Transfer } from '../entities';
@@ -38,36 +38,104 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
-    // Check if user exists
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
+    const queryRunner = this.userRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    try {
+      // Check if user exists
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
 
-    // Check if profile exists
-    let profile = await this.userProfileRepository.findOne({
-      where: { userId },
-    });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
-    if (profile) {
-      // Update existing profile
-        await this.userProfileRepository.update({ userId }, updateProfileDto as Partial<UserProfile>);
-      profile = await this.userProfileRepository.findOne({
+      const { email, firstName, lastName, phoneNumber, ...profileData } = updateProfileDto;
+      const userUpdates: Partial<User> = {};
+
+      if (email) userUpdates.email = email;
+      if (firstName) userUpdates.firstName = firstName;
+      if (lastName) userUpdates.lastName = lastName;
+      if (phoneNumber) userUpdates.phoneNumber = phoneNumber;
+
+      // Update user if there are user-related changes
+      if (Object.keys(userUpdates).length > 0) {
+        await queryRunner.manager.update(User, userId, userUpdates);
+      }
+
+      // Check if profile exists
+      let profile = await this.userProfileRepository.findOne({
         where: { userId },
       });
-    } else {
-      // Create new profile
-      profile = this.userProfileRepository.create({
-        userId,
-        ...updateProfileDto,
-      });
-      await this.userProfileRepository.save(profile);
-    }
 
-    return profile;
+      if (profile) {
+        // Update existing profile
+        await queryRunner.manager.update(UserProfile, { userId }, profileData);
+      } else {
+        // Create new profile
+        const newProfile = this.userProfileRepository.create({
+          userId,
+          ...profileData,
+        });
+        await queryRunner.manager.save(UserProfile, newProfile);
+      }
+
+      await queryRunner.commitTransaction();
+
+      // Return updated profile with user data
+      const updatedProfile = await this.userProfileRepository.findOne({
+        where: { userId },
+        relations: ['user'],
+      });
+
+      if (!updatedProfile) {
+        // Fallback if profile was just created but something went wrong or if we need to return something valid even if profile finding fails (though commit happened)
+        return {
+          ...profileData,
+          userId,
+          user: {
+            ...user,
+            ...userUpdates
+          }
+        }
+      }
+
+      return {
+        ...updatedProfile,
+        user: {
+          id: updatedProfile.user.id,
+          email: updatedProfile.user.email,
+          firstName: updatedProfile.user.firstName,
+          lastName: updatedProfile.user.lastName,
+          phoneNumber: updatedProfile.user.phoneNumber,
+          isVerified: updatedProfile.user.isVerified,
+          kycStatus: updatedProfile.user.kycStatus,
+        },
+      };
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error.code === '23505') { // Postgres unique violation code
+        throw new ConflictException('Email or phone number already in use');
+      }
+
+      // Check if it's already an HttpException
+      if (error.status) {
+        throw error;
+      }
+
+      console.error('Error updating profile:', error);
+      throw new InternalServerErrorException('Failed to update profile');
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async getProfile(userId: string) {
