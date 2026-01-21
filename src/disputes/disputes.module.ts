@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Dispute, DisputeMessage, Transaction, User } from '../entities';
+import { Dispute, DisputeMessage, Transfer, User } from '../entities';
 import { DisputesController, AdminDisputesController } from './disputes.controller';
 import { DisputesService } from './disputes.service';
 import { CommonModule } from '../common/common.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Dispute, DisputeMessage, Transaction, User]),
+        TypeOrmModule.forFeature([Dispute, DisputeMessage, Transfer, User]),
         CommonModule,
     ],
     controllers: [DisputesController, AdminDisputesController],
