@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 import { TransactionType, TransactionStatus } from '../enums/common.enum';
 import { Transfer } from './transfer.entity';
-import { Dispute } from './dispute.entity';
+
 
 @Entity('transactions')
 export class Transaction {
@@ -75,6 +75,4 @@ export class Transaction {
   @JoinColumn({ name: 'transferId' })
   transfer: Transfer;
 
-  @OneToMany(() => Dispute, (dispute) => dispute.transaction)
-  disputes: Dispute[];
 }
