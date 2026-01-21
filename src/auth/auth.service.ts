@@ -386,6 +386,7 @@ export class AuthService {
         phoneNumber: true,
         role: true,
         isVerified: true,
+        isEmailVerified: true,
         kycStatus: true,
         createdAt: true,
         updatedAt: true,
