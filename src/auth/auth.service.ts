@@ -187,7 +187,10 @@ export class AuthService {
 
     // Mark OTP as used
     await this.otpRepository.update({ id: otp.id }, { isUsed: true });
-
+    // update user if is not verified
+    if (user.isEmailVerified != true) {
+      await this.userRepository.update({ id: user.id }, { isEmailVerified: true });
+    }
     // Generate JWT token
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload);
