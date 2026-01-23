@@ -59,7 +59,7 @@ export class KycService {
     const filePath = file.path;
 
     // Generate full URL using API_URL from environment
-    const apiUrl = this.configService.get<string>('API_URL') || 'https://backendapi1-production.up.railway.app/';
+    const apiUrl = this.configService.get<string>('API_URL') || 'https://backendapi1-production.up.railway.app';
     const fileUrl = `${apiUrl}/uploads/kyc/${userId}/${file.filename}`;
 
     const kycDocument = this.kycDocumentRepository.create({
