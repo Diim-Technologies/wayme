@@ -15,6 +15,7 @@ export declare class UsersController {
             phoneNumber: string;
             isVerified: boolean;
             kycStatus: import("../enums/user.enum").KycStatus;
+            isEmailVerified: boolean;
         };
         id: string;
         userId: string;
@@ -36,7 +37,39 @@ export declare class UsersController {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    updateProfile(req: any, updateProfileDto: UpdateProfileDto): Promise<import("../entities").UserProfile>;
+    updateProfile(req: any, updateProfileDto: UpdateProfileDto): Promise<{
+        message: string;
+    } | {
+        user: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            phoneNumber: string;
+            isVerified: boolean;
+            kycStatus: import("../enums/user.enum").KycStatus;
+        };
+        id: string;
+        userId: string;
+        dateOfBirth: Date;
+        address: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+        occupation: string;
+        idType: string;
+        idNumber: string;
+        idImageUrl: string;
+        selfieUrl: string;
+        kycSubmittedAt: Date;
+        kycReviewedAt: Date;
+        kycReviewedBy: string;
+        kycRejectionReason: string;
+        createdAt: Date;
+        updatedAt: Date;
+        message: string;
+    }>;
     getTransferHistory(req: any, page?: number, limit?: number, status?: string, type?: string): Promise<{
         transfers: {
             type: string;
@@ -66,6 +99,7 @@ export declare class UsersController {
             receiver: import("../entities").User;
             recipientBank: import("../entities").Bank;
             sender: import("../entities").User;
+            disputes: import("../entities").Dispute[];
         }[];
         pagination: {
             currentPage: number;
@@ -89,7 +123,7 @@ export declare class UsersController {
     } | {
         success: any;
         message: string;
-        emailType: "transaction" | "welcome" | "otp";
+        emailType: "welcome" | "otp" | "transaction";
         error?: undefined;
     } | {
         success: boolean;

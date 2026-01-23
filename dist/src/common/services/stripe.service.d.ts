@@ -21,7 +21,7 @@ export declare class StripeService {
     }): Promise<Stripe.PaymentMethod>;
     attachPaymentMethod(paymentMethodId: string, customerId: string): Promise<Stripe.PaymentMethod>;
     detachPaymentMethod(paymentMethodId: string): Promise<Stripe.PaymentMethod>;
-    listCustomerPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]>;
+    listCustomerPaymentMethods(customerId: string, type?: Stripe.PaymentMethodListParams.Type): Promise<Stripe.PaymentMethod[]>;
     createPaymentIntent(amount: number, currency: string, customerId: string, paymentMethodId?: string, metadata?: Record<string, string>): Promise<Stripe.PaymentIntent>;
     confirmPaymentIntent(paymentIntentId: string, paymentMethodId?: string): Promise<Stripe.PaymentIntent>;
     retrievePaymentIntent(paymentIntentId: string): Promise<Stripe.PaymentIntent>;

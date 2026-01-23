@@ -15,6 +15,7 @@ export declare class User {
     password: string;
     role: UserRole;
     isVerified: boolean;
+    isEmailVerified: boolean;
     kycStatus: KycStatus;
     isTwoFactorEnabled: boolean;
     createdAt: Date;

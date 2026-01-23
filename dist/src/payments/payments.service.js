@@ -22,13 +22,15 @@ const transaction_entity_1 = require("../entities/transaction.entity");
 const stripe_payment_method_entity_1 = require("../entities/stripe-payment-method.entity");
 const common_enum_1 = require("../enums/common.enum");
 const stripe_service_1 = require("../common/services/stripe.service");
+const stripe_webhook_service_1 = require("../common/services/stripe-webhook.service");
 const transfers_service_1 = require("../transfers/transfers.service");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
-    constructor(transferRepository, transactionRepository, stripePaymentMethodRepository, stripeService, transfersService) {
+    constructor(transferRepository, transactionRepository, stripePaymentMethodRepository, stripeService, stripeWebhookService, transfersService) {
         this.transferRepository = transferRepository;
         this.transactionRepository = transactionRepository;
         this.stripePaymentMethodRepository = stripePaymentMethodRepository;
         this.stripeService = stripeService;
+        this.stripeWebhookService = stripeWebhookService;
         this.transfersService = transfersService;
         this.logger = new common_1.Logger(PaymentsService_1.name);
     }
@@ -95,6 +97,12 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             order: { category: 'ASC', displayName: 'ASC' },
         });
     }
+    constructWebhookEvent(payload, signature) {
+        return this.stripeService.constructWebhookEvent(payload, signature);
+    }
+    async handleWebhookEvent(event) {
+        return this.stripeWebhookService.handleWebhookEvent(event);
+    }
     async handlePaymentFailure(paymentIntentId) {
         const paymentIntent = await this.stripeService.retrievePaymentIntent(paymentIntentId);
         const transferId = paymentIntent.metadata.transferId;
@@ -133,6 +141,7 @@ exports.PaymentsService = PaymentsService = PaymentsService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         stripe_service_1.StripeService,
+        stripe_webhook_service_1.StripeWebhookService,
         transfers_service_1.TransfersService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var PaymentsController_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const common_1 = require("@nestjs/common");
@@ -18,9 +19,10 @@ const swagger_1 = require("@nestjs/swagger");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const payments_service_1 = require("./payments.service");
 const create_payment_dto_1 = require("./dto/create-payment.dto");
-let PaymentsController = class PaymentsController {
+let PaymentsController = PaymentsController_1 = class PaymentsController {
     constructor(paymentsService) {
         this.paymentsService = paymentsService;
+        this.logger = new common_1.Logger(PaymentsController_1.name);
     }
     async createPaymentIntent(req, dto) {
         return this.paymentsService.createPaymentIntent(req.user.id, dto);
@@ -29,7 +31,18 @@ let PaymentsController = class PaymentsController {
         return this.paymentsService.getAvailablePaymentMethods();
     }
     async handleWebhook(signature, req) {
-        return { received: true };
+        if (!signature) {
+            throw new common_1.BadRequestException('Missing stripe-signature header');
+        }
+        try {
+            const event = this.paymentsService.constructWebhookEvent(req.rawBody, signature);
+            await this.paymentsService.handleWebhookEvent(event);
+            return { received: true };
+        }
+        catch (error) {
+            this.logger.error(`Webhook error: ${error.message}`);
+            throw new common_1.BadRequestException(`Webhook Error: ${error.message}`);
+        }
     }
 };
 exports.PaymentsController = PaymentsController;
@@ -64,7 +77,7 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "handleWebhook", null);
-exports.PaymentsController = PaymentsController = __decorate([
+exports.PaymentsController = PaymentsController = PaymentsController_1 = __decorate([
     (0, swagger_1.ApiTags)('Payments'),
     (0, common_1.Controller)('payments'),
     __metadata("design:paramtypes", [payments_service_1.PaymentsService])

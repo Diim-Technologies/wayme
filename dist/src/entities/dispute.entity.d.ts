@@ -1,11 +1,11 @@
 import { DisputeStatus, DisputeCategory, DisputePriority } from '../enums/dispute.enum';
 import { User } from './user.entity';
-import { Transaction } from './transaction.entity';
+import { Transfer } from './transfer.entity';
 import { DisputeMessage } from './dispute-message.entity';
 export declare class Dispute {
     id: string;
     generateId(): void;
-    transactionId: string;
+    transferId: string;
     userId: string;
     category: DisputeCategory;
     status: DisputeStatus;
@@ -17,7 +17,7 @@ export declare class Dispute {
     createdAt: Date;
     updatedAt: Date;
     user: User;
-    transaction: Transaction;
+    transfer: Transfer;
     resolver: User;
     messages: DisputeMessage[];
 }

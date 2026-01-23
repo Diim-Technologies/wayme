@@ -4,13 +4,15 @@ import { DocumentType } from '../enums/kyc.enum';
 import { KycStatus } from '../enums/user.enum';
 import { EmailService } from '../common/services/email.service';
 import { RejectKycDto, KycFilterDto } from './dto/kyc.dto';
+import { ConfigService } from '@nestjs/config';
 export declare class KycService {
     private kycDocumentRepository;
     private userRepository;
     private userProfileRepository;
     private dataSource;
     private emailService;
-    constructor(kycDocumentRepository: Repository<KycDocument>, userRepository: Repository<User>, userProfileRepository: Repository<UserProfile>, dataSource: DataSource, emailService: EmailService);
+    private configService;
+    constructor(kycDocumentRepository: Repository<KycDocument>, userRepository: Repository<User>, userProfileRepository: Repository<UserProfile>, dataSource: DataSource, emailService: EmailService, configService: ConfigService);
     uploadDocument(userId: string, file: Express.Multer.File, documentType: DocumentType): Promise<{
         id: string;
         documentType: DocumentType;
@@ -19,6 +21,10 @@ export declare class KycService {
         uploadedAt: Date;
     }>;
     submitKyc(userId: string): Promise<{
+        message: string;
+        status: KycStatus;
+    }>;
+    submitFullKyc(userId: string, idFile: Express.Multer.File, selfieFile: Express.Multer.File | undefined, documentType: DocumentType): Promise<{
         message: string;
         status: KycStatus;
     }>;

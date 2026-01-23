@@ -36,6 +36,9 @@ let StripeWebhookService = StripeWebhookService_1 = class StripeWebhookService {
                 case 'payment_intent.succeeded':
                     await this.handlePaymentIntentSucceeded(event);
                     break;
+                case 'payment_intent.processing':
+                    await this.handlePaymentIntentProcessing(event.data.object);
+                    break;
                 case 'payment_intent.payment_failed':
                     await this.handlePaymentIntentFailed(event);
                     break;
@@ -123,6 +126,46 @@ let StripeWebhookService = StripeWebhookService_1 = class StripeWebhookService {
         }
         catch (error) {
             this.logger.error(`Failed to process payment intent success: ${paymentIntent.id}`, error);
+        }
+    }
+    async handlePaymentIntentProcessing(paymentIntent) {
+        this.logger.log(`Payment intent processing: ${paymentIntent.id}`);
+        try {
+            const transferId = paymentIntent.metadata?.transferId;
+            if (!transferId)
+                return;
+            await this.dataSource.transaction(async (manager) => {
+                await manager.update(entities_1.Transfer, { id: transferId }, {
+                    status: common_enum_1.TransferStatus.PROCESSING,
+                    processedAt: new Date(),
+                });
+                await manager.update(entities_1.Transaction, { transferId }, {
+                    status: common_enum_1.TransactionStatus.PROCESSING,
+                    gatewayRef: paymentIntent.id,
+                });
+                const transfer = await manager.findOne(entities_1.Transfer, {
+                    where: { id: transferId },
+                    relations: ['sender'],
+                });
+                if (transfer) {
+                    const notification = manager.create(entities_1.Notification, {
+                        userId: transfer.senderId,
+                        type: common_enum_1.NotificationType.TRANSFER_SENT,
+                        title: 'Payment Processing',
+                        message: `Your payment of ₦${transfer.amount.toLocaleString()} is being processed. It may take a few days to settle depending on your bank.`,
+                        data: {
+                            transferId,
+                            reference: transfer.reference,
+                            paymentIntentId: paymentIntent.id,
+                            status: 'PROCESSING',
+                        },
+                    });
+                    await manager.save(entities_1.Notification, notification);
+                }
+            });
+        }
+        catch (error) {
+            this.logger.error(`Failed to process payment intent processing: ${paymentIntent.id}`, error);
         }
     }
     async handlePaymentIntentFailed(event) {

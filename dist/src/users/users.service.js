@@ -32,6 +32,7 @@ let UsersService = class UsersService {
                 lastName: true,
                 phoneNumber: true,
                 isVerified: true,
+                isEmailVerified: true,
                 kycStatus: true,
                 createdAt: true,
                 updatedAt: true,
@@ -44,29 +45,83 @@ let UsersService = class UsersService {
         return user;
     }
     async updateProfile(userId, updateProfileDto) {
-        const user = await this.userRepository.findOne({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
-        }
-        let profile = await this.userProfileRepository.findOne({
-            where: { userId },
-        });
-        if (profile) {
-            await this.userProfileRepository.update({ userId }, updateProfileDto);
-            profile = await this.userProfileRepository.findOne({
+        const queryRunner = this.userRepository.manager.connection.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            const user = await this.userRepository.findOne({
+                where: { id: userId },
+            });
+            if (!user) {
+                throw new common_1.NotFoundException('User not found');
+            }
+            const { email, firstName, lastName, phoneNumber, ...profileData } = updateProfileDto;
+            const userUpdates = {};
+            if (email)
+                userUpdates.email = email;
+            if (firstName)
+                userUpdates.firstName = firstName;
+            if (lastName)
+                userUpdates.lastName = lastName;
+            if (phoneNumber)
+                userUpdates.phoneNumber = phoneNumber;
+            if (Object.keys(userUpdates).length > 0) {
+                await queryRunner.manager.update(entities_1.User, userId, userUpdates);
+            }
+            let profile = await this.userProfileRepository.findOne({
                 where: { userId },
             });
-        }
-        else {
-            profile = this.userProfileRepository.create({
-                userId,
-                ...updateProfileDto,
+            if (profile) {
+                await queryRunner.manager.update(entities_1.UserProfile, { userId }, profileData);
+            }
+            else {
+                const newProfile = this.userProfileRepository.create({
+                    userId,
+                    ...profileData,
+                });
+                await queryRunner.manager.save(entities_1.UserProfile, newProfile);
+            }
+            await queryRunner.commitTransaction();
+            const updatedProfile = await this.userProfileRepository.findOne({
+                where: { userId },
+                relations: ['user'],
             });
-            await this.userProfileRepository.save(profile);
+            if (!updatedProfile) {
+                return {
+                    message: 'Profile Not updated successfully',
+                };
+            }
+            return {
+                message: 'Profile updated successfully',
+                ...updatedProfile,
+                user: {
+                    id: updatedProfile.user.id,
+                    email: updatedProfile.user.email,
+                    firstName: updatedProfile.user.firstName,
+                    lastName: updatedProfile.user.lastName,
+                    phoneNumber: updatedProfile.user.phoneNumber,
+                    isVerified: updatedProfile.user.isVerified,
+                    kycStatus: updatedProfile.user.kycStatus,
+                },
+            };
         }
-        return profile;
+        catch (error) {
+            await queryRunner.rollbackTransaction();
+            if (error instanceof common_1.NotFoundException) {
+                throw error;
+            }
+            if (error.code === '23505') {
+                throw new common_1.ConflictException('Email or phone number already in use');
+            }
+            if (error.status) {
+                throw error;
+            }
+            console.error('Error updating profile:', error);
+            throw new common_1.InternalServerErrorException('Failed to update profile');
+        }
+        finally {
+            await queryRunner.release();
+        }
     }
     async getProfile(userId) {
         const profile = await this.userProfileRepository.findOne({
@@ -86,6 +141,7 @@ let UsersService = class UsersService {
                 phoneNumber: profile.user.phoneNumber,
                 isVerified: profile.user.isVerified,
                 kycStatus: profile.user.kycStatus,
+                isEmailVerified: profile.user.isEmailVerified,
             },
         };
     }

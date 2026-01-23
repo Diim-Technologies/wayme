@@ -13,7 +13,7 @@ exports.Dispute = void 0;
 const typeorm_1 = require("typeorm");
 const dispute_enum_1 = require("../enums/dispute.enum");
 const user_entity_1 = require("./user.entity");
-const transaction_entity_1 = require("./transaction.entity");
+const transfer_entity_1 = require("./transfer.entity");
 const dispute_message_entity_1 = require("./dispute-message.entity");
 const crypto_1 = require("crypto");
 let Dispute = class Dispute {
@@ -38,7 +38,7 @@ __decorate([
     (0, typeorm_1.Column)(),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
-], Dispute.prototype, "transactionId", void 0);
+], Dispute.prototype, "transferId", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     (0, typeorm_1.Index)(),
@@ -98,10 +98,10 @@ __decorate([
     __metadata("design:type", user_entity_1.User)
 ], Dispute.prototype, "user", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => transaction_entity_1.Transaction, (transaction) => transaction.disputes, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.JoinColumn)({ name: 'transactionId' }),
-    __metadata("design:type", transaction_entity_1.Transaction)
-], Dispute.prototype, "transaction", void 0);
+    (0, typeorm_1.ManyToOne)(() => transfer_entity_1.Transfer, (transfer) => transfer.disputes, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'transferId' }),
+    __metadata("design:type", transfer_entity_1.Transfer)
+], Dispute.prototype, "transfer", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'resolvedBy' }),

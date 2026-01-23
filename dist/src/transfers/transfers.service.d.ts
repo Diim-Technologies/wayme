@@ -46,6 +46,7 @@ export declare class TransfersService {
             receiver: User;
             recipientBank: import("../entities").Bank;
             sender: User;
+            disputes: import("../entities").Dispute[];
         }[];
         total: number;
         page: number;

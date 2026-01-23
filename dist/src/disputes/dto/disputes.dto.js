@@ -18,17 +18,19 @@ class CreateDisputeDto {
 exports.CreateDisputeDto = CreateDisputeDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        example: 'trans_123',
-        description: 'Transaction ID to dispute'
+        example: 'trans_123 or uuid',
+        description: 'Transfer ID (UUID) or reference string to dispute',
+        type: String
     }),
-    (0, class_validator_1.IsUUID)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], CreateDisputeDto.prototype, "transactionId", void 0);
+], CreateDisputeDto.prototype, "transferId", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 'DELAYED_TRANSFER',
         enum: dispute_enum_1.DisputeCategory,
-        description: 'Category of the dispute'
+        description: 'Category of the dispute',
+        enumName: 'DisputeCategory',
     }),
     (0, class_validator_1.IsEnum)(dispute_enum_1.DisputeCategory),
     __metadata("design:type", String)
@@ -36,7 +38,8 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 'Transfer not received',
-        description: 'Brief subject of the dispute'
+        description: 'Brief subject of the dispute',
+        minLength: 5
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(5),
@@ -45,7 +48,8 @@ __decorate([
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 'I sent money 3 days ago but the recipient has not received it yet. Transaction reference: TXN123456',
-        description: 'Detailed description of the issue'
+        description: 'Detailed description of the issue',
+        minLength: 20
     }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(20),
@@ -56,7 +60,8 @@ __decorate([
         example: 'HIGH',
         enum: dispute_enum_1.DisputePriority,
         description: 'Priority level of the dispute',
-        default: 'MEDIUM'
+        default: 'MEDIUM',
+        enumName: 'DisputePriority',
     }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(dispute_enum_1.DisputePriority),

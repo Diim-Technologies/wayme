@@ -1,26 +1,13 @@
 import { KycService } from './kyc.service';
-import { UploadDocumentDto, RejectKycDto, KycFilterDto } from './dto/kyc.dto';
+import { SubmitKycFullDto, RejectKycDto, KycFilterDto } from './dto/kyc.dto';
 import { DocumentType } from '../enums/kyc.enum';
 export declare class KycController {
     private kycService;
     constructor(kycService: KycService);
-    uploadGovernmentId(req: any, file: Express.Multer.File, dto: UploadDocumentDto): Promise<{
-        id: string;
-        documentType: DocumentType;
-        fileUrl: string;
-        fileName: string;
-        uploadedAt: Date;
-    } | {
-        message: string;
-    }>;
-    uploadSelfie(req: any, file: Express.Multer.File): Promise<{
-        id: string;
-        documentType: DocumentType;
-        fileUrl: string;
-        fileName: string;
-        uploadedAt: Date;
-    }>;
-    submitKyc(req: any): Promise<{
+    submitKyc(req: any, files: {
+        idFile?: Express.Multer.File[];
+        selfieFile?: Express.Multer.File[];
+    }, dto: SubmitKycFullDto): Promise<{
         message: string;
         status: import("../enums/user.enum").KycStatus;
     }>;

@@ -7,6 +7,7 @@ import { DocumentType } from '../enums/kyc.enum';
 import { KycStatus } from '../enums/user.enum';
 import { EmailService } from '../common/services/email.service';
 import { RejectKycDto, KycFilterDto } from './dto/kyc.dto';
+import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -21,7 +22,9 @@ export class KycService {
     private userProfileRepository: Repository<UserProfile>,
     private dataSource: DataSource,
     private emailService: EmailService,
+    private configService: ConfigService,
   ) { }
+
 
   async uploadDocument(userId: string, file: Express.Multer.File, documentType: DocumentType) {
     if (!file) {
@@ -54,7 +57,10 @@ export class KycService {
 
     // Save new document
     const filePath = file.path;
-    const fileUrl = `/uploads/kyc/${userId}/${file.filename}`;
+
+    // Generate full URL using API_URL from environment
+    const apiUrl = this.configService.get<string>('API_URL') || 'http://localhost:3000';
+    const fileUrl = `${apiUrl}/uploads/kyc/${userId}/${file.filename}`;
 
     const kycDocument = this.kycDocumentRepository.create({
       userId,

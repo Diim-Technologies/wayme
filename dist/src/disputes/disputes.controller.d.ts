@@ -9,7 +9,7 @@ export declare class DisputesController {
             messageCount: number;
             lastMessageAt: Date;
             id: string;
-            transactionId: string;
+            transferId: string;
             userId: string;
             category: import("../enums/dispute.enum").DisputeCategory;
             status: import("../enums/dispute.enum").DisputeStatus;
@@ -21,7 +21,7 @@ export declare class DisputesController {
             createdAt: Date;
             updatedAt: Date;
             user: import("../entities").User;
-            transaction: import("../entities").Transaction;
+            transfer: import("../entities").Transfer;
             resolver: import("../entities").User;
             messages: import("../entities").DisputeMessage[];
         }[];
@@ -43,7 +43,7 @@ export declare class AdminDisputesController {
             messageCount: number;
             lastMessageAt: Date;
             id: string;
-            transactionId: string;
+            transferId: string;
             userId: string;
             category: import("../enums/dispute.enum").DisputeCategory;
             status: import("../enums/dispute.enum").DisputeStatus;
@@ -55,7 +55,7 @@ export declare class AdminDisputesController {
             createdAt: Date;
             updatedAt: Date;
             user: import("../entities").User;
-            transaction: import("../entities").Transaction;
+            transfer: import("../entities").Transfer;
             resolver: import("../entities").User;
             messages: import("../entities").DisputeMessage[];
         }[];

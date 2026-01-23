@@ -7,16 +7,12 @@ if (require.main === module) {
             await AppDataSource.initialize();
             console.log('DB Connected');
             const queryRunner = AppDataSource.createQueryRunner();
-            const hasStripe = await queryRunner.hasTable('stripe_payment_methods');
-            console.log(`Stripe Table: ${hasStripe}`);
-            const hasPayment = await queryRunner.hasTable('payment_methods');
-            console.log(`Payment Table: ${hasPayment}`);
-            if (hasPayment) {
-                const table = await queryRunner.getTable('payment_methods');
-                const idCol = table.columns.find(c => c.name === 'id');
-                console.log(`Payment ID Default: ${idCol?.default}`);
-                console.log(`Payment ID Type: ${idCol?.type}`);
-            }
+            console.log('--- ENUMS ---');
+            const enums = await queryRunner.query(`SELECT n.nspname as schema, t.typname as type FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace WHERE t.typtype = 'e'`);
+            console.log(JSON.stringify(enums, null, 2));
+            console.log('--- USERS COLUMN ---');
+            const cols = await queryRunner.query(`SELECT column_name, udt_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'kycStatus'`);
+            console.log(JSON.stringify(cols, null, 2));
             await AppDataSource.destroy();
             process.exit(0);
         }

@@ -32,6 +32,7 @@ exports.default = new typeorm_1.DataSource({
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
     logging: true,
+    migrationsTransactionMode: 'each',
     ssl: configService.get('DB_SSL') === 'true' ? { rejectUnauthorized: false } : false,
 });
 //# sourceMappingURL=typeorm.config.js.map

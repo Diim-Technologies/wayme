@@ -9,9 +9,37 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VerifyEmailDto = exports.RequestEmailVerificationDto = exports.ChangePasswordDto = exports.ResetPasswordDto = exports.Verify2FADto = exports.VerifyOTPDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = void 0;
+exports.VerifyEmailDto = exports.RequestEmailVerificationDto = exports.ChangePasswordDto = exports.ResetPasswordDto = exports.Verify2FADto = exports.VerifyOTPDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = exports.UpdateProfileDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
+class UpdateProfileDto {
+}
+exports.UpdateProfileDto = UpdateProfileDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'john.doe@example.com' }),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'John' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "firstName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Doe' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "lastName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '+2348123456789', description: 'Phone number in E.164 format (e.g., +2348123456789 for Nigeria, +1234567890 for US)' }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^\+[1-9]\d{1,14}$/, {
+        message: 'Phone number must be in valid international format (E.164): start with + followed by country code and number (e.g., +2348123456789)',
+    }),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "phoneNumber", void 0);
 class RegisterDto {
 }
 exports.RegisterDto = RegisterDto;

@@ -23,52 +23,17 @@ let FeeService = class FeeService {
     constructor(feeRepository) {
         this.feeRepository = feeRepository;
     }
-    async calculateTransferFee(amount, transferType = 'DOMESTIC', paymentMethod = 'BANK_TRANSFER', currency = 'NGN') {
+    async calculateTransferFee(amount, currency = 'NGN') {
         try {
-            let feeConfig = await this.feeRepository.findOne({
+            const feeConfig = await this.feeRepository.findOne({
                 where: {
                     type: common_enum_1.FeeType.TRANSFER_FEE,
                     isActive: true,
                     currency: currency,
-                    transferType: transferType,
-                    paymentMethod: paymentMethod,
                 },
             });
             if (!feeConfig) {
-                feeConfig = await this.feeRepository.findOne({
-                    where: {
-                        type: common_enum_1.FeeType.TRANSFER_FEE,
-                        isActive: true,
-                        currency: currency,
-                        transferType: transferType,
-                        paymentMethod: null,
-                    },
-                });
-            }
-            if (!feeConfig) {
-                feeConfig = await this.feeRepository.findOne({
-                    where: {
-                        type: common_enum_1.FeeType.TRANSFER_FEE,
-                        isActive: true,
-                        currency: currency,
-                        transferType: null,
-                        paymentMethod: paymentMethod,
-                    },
-                });
-            }
-            if (!feeConfig) {
-                feeConfig = await this.feeRepository.findOne({
-                    where: {
-                        type: common_enum_1.FeeType.TRANSFER_FEE,
-                        isActive: true,
-                        currency: currency,
-                        transferType: null,
-                        paymentMethod: null,
-                    },
-                });
-            }
-            if (!feeConfig) {
-                console.warn(`No fee configuration found for transferType: ${transferType}, paymentMethod: ${paymentMethod}, currency: ${currency}`);
+                console.warn(`No fee configuration found for currency: ${currency}`);
                 return new decimal_js_1.Decimal(0);
             }
             let calculatedFee = new decimal_js_1.Decimal(0);
@@ -126,8 +91,6 @@ let FeeService = class FeeService {
             type: data.type,
             percentageRate: data.percentage,
             fixedAmount: data.fixedAmount,
-            transferType: data.transferType,
-            paymentMethod: data.paymentMethod,
             currency: data.currency || 'NGN',
         });
         return this.feeRepository.save(feeConfig);
@@ -136,8 +99,6 @@ let FeeService = class FeeService {
         await this.feeRepository.update({ id }, {
             percentageRate: data.percentage,
             fixedAmount: data.fixedAmount,
-            transferType: data.transferType,
-            paymentMethod: data.paymentMethod,
             isActive: data.isActive,
         });
         return this.feeRepository.findOne({ where: { id } });

@@ -15,8 +15,8 @@ const transfer_entity_1 = require("../entities/transfer.entity");
 const transaction_entity_1 = require("../entities/transaction.entity");
 const stripe_payment_method_entity_1 = require("../entities/stripe-payment-method.entity");
 const user_entity_1 = require("../entities/user.entity");
-const stripe_service_1 = require("../common/services/stripe.service");
 const transfers_module_1 = require("../transfers/transfers.module");
+const common_module_1 = require("../common/common.module");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
@@ -30,9 +30,10 @@ exports.PaymentsModule = PaymentsModule = __decorate([
                 user_entity_1.User,
             ]),
             transfers_module_1.TransfersModule,
+            common_module_1.CommonModule,
         ],
         controllers: [payments_controller_1.PaymentsController],
-        providers: [payments_service_1.PaymentsService, stripe_service_1.StripeService],
+        providers: [payments_service_1.PaymentsService],
         exports: [payments_service_1.PaymentsService],
     })
 ], PaymentsModule);

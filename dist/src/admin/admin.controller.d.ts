@@ -44,6 +44,7 @@ export declare class AdminController {
         phoneNumber: string;
         role: import("../enums/user.enum").UserRole;
         isVerified: boolean;
+        isEmailVerified: boolean;
         kycStatus: import("../enums/user.enum").KycStatus;
         isTwoFactorEnabled: boolean;
         createdAt: Date;
@@ -90,6 +91,7 @@ export declare class AdminController {
             receiver: import("../entities").User;
             recipientBank: import("../entities").Bank;
             sender: import("../entities").User;
+            disputes: import("../entities").Dispute[];
         }[];
         pagination: {
             currentPage: number;

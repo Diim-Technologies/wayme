@@ -16,6 +16,7 @@ const transaction_entity_1 = require("./transaction.entity");
 const payment_method_entity_1 = require("./payment-method.entity");
 const user_entity_1 = require("./user.entity");
 const bank_entity_1 = require("./bank.entity");
+const dispute_entity_1 = require("./dispute.entity");
 let Transfer = class Transfer {
 };
 exports.Transfer = Transfer;
@@ -135,6 +136,10 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'senderId' }),
     __metadata("design:type", user_entity_1.User)
 ], Transfer.prototype, "sender", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => dispute_entity_1.Dispute, (dispute) => dispute.transfer),
+    __metadata("design:type", Array)
+], Transfer.prototype, "disputes", void 0);
 exports.Transfer = Transfer = __decorate([
     (0, typeorm_1.Entity)('transfers')
 ], Transfer);

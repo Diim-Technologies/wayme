@@ -108,16 +108,16 @@ let StripeService = StripeService_1 = class StripeService {
             throw new common_1.BadRequestException('Failed to remove payment method');
         }
     }
-    async listCustomerPaymentMethods(customerId) {
+    async listCustomerPaymentMethods(customerId, type = 'card') {
         try {
             const paymentMethods = await this.stripe.paymentMethods.list({
                 customer: customerId,
-                type: 'card',
+                type: type,
             });
             return paymentMethods.data;
         }
         catch (error) {
-            this.logger.error('Failed to list payment methods:', error);
+            this.logger.error(`Failed to list ${type} payment methods:`, error);
             return [];
         }
     }

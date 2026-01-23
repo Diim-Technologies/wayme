@@ -3,6 +3,7 @@ import { Transaction } from './transaction.entity';
 import { PaymentMethod } from './payment-method.entity';
 import { User } from './user.entity';
 import { Bank } from './bank.entity';
+import { Dispute } from './dispute.entity';
 export declare class Transfer {
     id: string;
     senderId: string;
@@ -30,4 +31,5 @@ export declare class Transfer {
     receiver: User;
     recipientBank: Bank;
     sender: User;
+    disputes: Dispute[];
 }

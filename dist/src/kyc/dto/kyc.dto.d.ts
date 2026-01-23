@@ -1,6 +1,6 @@
 import { DocumentType } from '../../enums/kyc.enum';
 import { KycStatus } from '../../enums/user.enum';
-export declare class UploadDocumentDto {
+export declare class SubmitKycFullDto {
     documentType: DocumentType;
 }
 export declare class SubmitKycDto {

@@ -1,5 +1,9 @@
 export declare class UpdateProfileDto {
-    dateOfBirth?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+    dateOfBirth?: Date;
     address?: string;
     city?: string;
     state?: string;

@@ -1,23 +1,23 @@
 import { Repository, DataSource } from 'typeorm';
-import { Dispute, DisputeMessage, Transaction, User } from '../entities';
+import { Dispute, DisputeMessage, Transfer, User } from '../entities';
 import { DisputeStatus, DisputePriority } from '../enums/dispute.enum';
 import { EmailService } from '../common/services/email.service';
 import { CreateDisputeDto, ReplyDisputeDto, UpdateDisputeStatusDto, CloseDisputeDto, DisputeFilterDto } from './dto/disputes.dto';
 export declare class DisputesService {
     private disputeRepository;
     private disputeMessageRepository;
-    private transactionRepository;
+    private transferRepository;
     private userRepository;
     private dataSource;
     private emailService;
-    constructor(disputeRepository: Repository<Dispute>, disputeMessageRepository: Repository<DisputeMessage>, transactionRepository: Repository<Transaction>, userRepository: Repository<User>, dataSource: DataSource, emailService: EmailService);
+    constructor(disputeRepository: Repository<Dispute>, disputeMessageRepository: Repository<DisputeMessage>, transferRepository: Repository<Transfer>, userRepository: Repository<User>, dataSource: DataSource, emailService: EmailService);
     createDispute(userId: string, createDisputeDto: CreateDisputeDto): Promise<Dispute>;
     getMyDisputes(userId: string, page?: number, limit?: number, filters?: DisputeFilterDto): Promise<{
         disputes: {
             messageCount: number;
             lastMessageAt: Date;
             id: string;
-            transactionId: string;
+            transferId: string;
             userId: string;
             category: import("../enums/dispute.enum").DisputeCategory;
             status: DisputeStatus;
@@ -29,7 +29,7 @@ export declare class DisputesService {
             createdAt: Date;
             updatedAt: Date;
             user: User;
-            transaction: Transaction;
+            transfer: Transfer;
             resolver: User;
             messages: DisputeMessage[];
         }[];
@@ -47,7 +47,7 @@ export declare class DisputesService {
             messageCount: number;
             lastMessageAt: Date;
             id: string;
-            transactionId: string;
+            transferId: string;
             userId: string;
             category: import("../enums/dispute.enum").DisputeCategory;
             status: DisputeStatus;
@@ -59,7 +59,7 @@ export declare class DisputesService {
             createdAt: Date;
             updatedAt: Date;
             user: User;
-            transaction: Transaction;
+            transfer: Transfer;
             resolver: User;
             messages: DisputeMessage[];
         }[];

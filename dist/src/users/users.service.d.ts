@@ -6,7 +6,39 @@ export declare class UsersService {
     private userProfileRepository;
     constructor(userRepository: Repository<User>, userProfileRepository: Repository<UserProfile>);
     findById(id: string): Promise<User>;
-    updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<UserProfile>;
+    updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<{
+        message: string;
+    } | {
+        user: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            phoneNumber: string;
+            isVerified: boolean;
+            kycStatus: import("../enums/user.enum").KycStatus;
+        };
+        id: string;
+        userId: string;
+        dateOfBirth: Date;
+        address: string;
+        city: string;
+        state: string;
+        country: string;
+        postalCode: string;
+        occupation: string;
+        idType: string;
+        idNumber: string;
+        idImageUrl: string;
+        selfieUrl: string;
+        kycSubmittedAt: Date;
+        kycReviewedAt: Date;
+        kycReviewedBy: string;
+        kycRejectionReason: string;
+        createdAt: Date;
+        updatedAt: Date;
+        message: string;
+    }>;
     getProfile(userId: string): Promise<{
         user: {
             id: string;
@@ -16,6 +48,7 @@ export declare class UsersService {
             phoneNumber: string;
             isVerified: boolean;
             kycStatus: import("../enums/user.enum").KycStatus;
+            isEmailVerified: boolean;
         };
         id: string;
         userId: string;
@@ -66,6 +99,7 @@ export declare class UsersService {
             receiver: User;
             recipientBank: import("../entities").Bank;
             sender: User;
+            disputes: import("../entities").Dispute[];
         }[];
         pagination: {
             currentPage: number;

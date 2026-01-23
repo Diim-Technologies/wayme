@@ -72,6 +72,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "isVerified", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isEmailVerified", void 0);
+__decorate([
     (0, typeorm_1.Column)({
         type: 'enum',
         enum: user_enum_1.KycStatus,

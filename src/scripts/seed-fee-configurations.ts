@@ -10,29 +10,20 @@ async function seedFeeConfigurations() {
     try {
         console.log('Seeding fee configurations...');
 
-        // Define currencies to seed
-        const currencies = ['NGN', 'EUR', 'USD', 'GBP'];
+        // Define currencies to seed: EUR, CZK, NGN only
+        const currencies = ['EUR', 'CZK', 'NGN'];
 
         for (const currency of currencies) {
             console.log(`\n--- Seeding fees for ${currency} ---`);
 
-            // Transfer fee
+            // Transfer fee - 4% for all currencies
             await feeService.createFeeConfiguration({
                 name: `Transfer Fee (${currency})`,
                 type: FeeType.TRANSFER_FEE,
-                percentage: 0.025, // 2.5%
+                percentage: 4, // 4%
                 currency,
             });
-            console.log(`✓ Created transfer fee for ${currency}`);
-
-            // Currency conversion fee
-            await feeService.createFeeConfiguration({
-                name: `Currency Conversion Fee (${currency})`,
-                type: FeeType.CURRENCY_CONVERSION_FEE,
-                percentage: 0.005, // 0.5%
-                currency,
-            });
-            console.log(`✓ Created currency conversion fee for ${currency}`);
+            console.log(`✓ Created transfer fee for ${currency} (4%)`);
         }
 
         console.log('\n✅ All fee configurations seeded successfully!');

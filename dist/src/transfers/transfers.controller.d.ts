@@ -35,6 +35,7 @@ export declare class TransfersController {
             receiver: import("../entities").User;
             recipientBank: import("../entities").Bank;
             sender: import("../entities").User;
+            disputes: import("../entities").Dispute[];
         }[];
         total: number;
         page: number;

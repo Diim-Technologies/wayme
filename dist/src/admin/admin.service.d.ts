@@ -60,6 +60,7 @@ export declare class AdminService {
             receiver: User;
             recipientBank: Bank;
             sender: User;
+            disputes: import("../entities").Dispute[];
         }[];
         pagination: {
             currentPage: number;
@@ -77,6 +78,7 @@ export declare class AdminService {
         phoneNumber: string;
         role: UserRole;
         isVerified: boolean;
+        isEmailVerified: boolean;
         kycStatus: KycStatus;
         isTwoFactorEnabled: boolean;
         createdAt: Date;

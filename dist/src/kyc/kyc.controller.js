@@ -27,17 +27,10 @@ let KycController = class KycController {
     constructor(kycService) {
         this.kycService = kycService;
     }
-    async uploadGovernmentId(req, file, dto) {
-        if (dto.documentType === kyc_enum_1.DocumentType.SELFIE) {
-            return { message: 'Invalid document type for this endpoint. Use /upload/selfie' };
-        }
-        return this.kycService.uploadDocument(req.user.id, file, dto.documentType);
-    }
-    async uploadSelfie(req, file) {
-        return this.kycService.uploadDocument(req.user.id, file, kyc_enum_1.DocumentType.SELFIE);
-    }
-    async submitKyc(req) {
-        return this.kycService.submitKyc(req.user.id);
+    async submitKyc(req, files, dto) {
+        const idFile = files.idFile ? files.idFile[0] : null;
+        const selfieFile = files.selfieFile ? files.selfieFile[0] : null;
+        return this.kycService.submitFullKyc(req.user.id, idFile, selfieFile, dto.documentType);
     }
     async getMyDocuments(req) {
         return this.kycService.getMyDocuments(req.user.id);
@@ -48,34 +41,41 @@ let KycController = class KycController {
 };
 exports.KycController = KycController;
 __decorate([
-    (0, common_1.Post)('upload/government-id'),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', multer_config_1.multerConfig)),
+    (0, common_1.Post)('submit'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileFieldsInterceptor)([
+        { name: 'idFile', maxCount: 1 },
+        { name: 'selfieFile', maxCount: 1 },
+    ], multer_config_1.multerConfig)),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload government ID (Passport, National ID, Residence Permit)' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Submit full KYC (ID and Optional Selfie)' }),
+    (0, swagger_1.ApiBody)({
+        schema: {
+            type: 'object',
+            properties: {
+                documentType: {
+                    type: 'string',
+                    enum: [kyc_enum_1.DocumentType.PASSPORT, kyc_enum_1.DocumentType.NATIONAL_ID, kyc_enum_1.DocumentType.RESIDENCE_PERMIT],
+                    description: 'Type of government ID being uploaded'
+                },
+                idFile: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Government ID file'
+                },
+                selfieFile: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Selfie photo (Optional)'
+                },
+            },
+            required: ['documentType', 'idFile'],
+        },
+    }),
     __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.UploadedFiles)()),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, kyc_dto_1.UploadDocumentDto]),
-    __metadata("design:returntype", Promise)
-], KycController.prototype, "uploadGovernmentId", null);
-__decorate([
-    (0, common_1.Post)('upload/selfie'),
-    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', multer_config_1.multerConfig)),
-    (0, swagger_1.ApiConsumes)('multipart/form-data'),
-    (0, swagger_1.ApiOperation)({ summary: 'Upload selfie (Optional but Recommended)' }),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.UploadedFile)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], KycController.prototype, "uploadSelfie", null);
-__decorate([
-    (0, common_1.Post)('submit'),
-    (0, swagger_1.ApiOperation)({ summary: 'Submit KYC for review' }),
-    __param(0, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object, kyc_dto_1.SubmitKycFullDto]),
     __metadata("design:returntype", Promise)
 ], KycController.prototype, "submitKyc", null);
 __decorate([

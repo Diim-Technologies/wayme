@@ -13,7 +13,6 @@ exports.Transaction = void 0;
 const typeorm_1 = require("typeorm");
 const common_enum_1 = require("../enums/common.enum");
 const transfer_entity_1 = require("./transfer.entity");
-const dispute_entity_1 = require("./dispute.entity");
 let Transaction = class Transaction {
 };
 exports.Transaction = Transaction;
@@ -94,10 +93,6 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'transferId' }),
     __metadata("design:type", transfer_entity_1.Transfer)
 ], Transaction.prototype, "transfer", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => dispute_entity_1.Dispute, (dispute) => dispute.transaction),
-    __metadata("design:type", Array)
-], Transaction.prototype, "disputes", void 0);
 exports.Transaction = Transaction = __decorate([
     (0, typeorm_1.Entity)('transactions')
 ], Transaction);

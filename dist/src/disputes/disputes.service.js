@@ -20,34 +20,44 @@ const entities_1 = require("../entities");
 const dispute_enum_1 = require("../enums/dispute.enum");
 const email_service_1 = require("../common/services/email.service");
 let DisputesService = class DisputesService {
-    constructor(disputeRepository, disputeMessageRepository, transactionRepository, userRepository, dataSource, emailService) {
+    constructor(disputeRepository, disputeMessageRepository, transferRepository, userRepository, dataSource, emailService) {
         this.disputeRepository = disputeRepository;
         this.disputeMessageRepository = disputeMessageRepository;
-        this.transactionRepository = transactionRepository;
+        this.transferRepository = transferRepository;
         this.userRepository = userRepository;
         this.dataSource = dataSource;
         this.emailService = emailService;
     }
     async createDispute(userId, createDisputeDto) {
-        const { transactionId, category, subject, description, priority } = createDisputeDto;
-        const transaction = await this.transactionRepository.findOne({
-            where: { id: transactionId },
-            relations: ['transfer'],
-        });
-        if (!transaction) {
-            throw new common_1.NotFoundException('Transaction not found');
+        let { transferId, category, subject, description, priority } = createDisputeDto;
+        let transfer = null;
+        if (/^[0-9a-fA-F-]{36}$/.test(transferId)) {
+            transfer = await this.transferRepository.findOne({
+                where: { id: transferId },
+            });
         }
-        if (transaction.transfer.senderId !== userId && transaction.transfer.receiverId !== userId) {
-            throw new common_1.ForbiddenException('You can only create disputes for your own transactions');
+        else {
+            transfer = await this.transferRepository.findOne({
+                where: { reference: transferId },
+            });
+            if (transfer) {
+                transferId = transfer.id;
+            }
+        }
+        if (!transfer) {
+            throw new common_1.NotFoundException('Transfer not found');
+        }
+        if (transfer.senderId !== userId && transfer.receiverId !== userId) {
+            throw new common_1.ForbiddenException('You can only create disputes for your own transfers');
         }
         const existingDispute = await this.disputeRepository.findOne({
-            where: { transactionId, status: dispute_enum_1.DisputeStatus.OPEN },
+            where: { transferId, status: dispute_enum_1.DisputeStatus.OPEN },
         });
         if (existingDispute) {
-            throw new common_1.BadRequestException('An open dispute already exists for this transaction');
+            throw new common_1.BadRequestException('An open dispute already exists for this transfer');
         }
         const dispute = this.disputeRepository.create({
-            transactionId,
+            transferId,
             userId,
             category,
             subject,
@@ -76,7 +86,7 @@ let DisputesService = class DisputesService {
             where.priority = filters.priority;
         const [disputes, total] = await this.disputeRepository.findAndCount({
             where,
-            relations: ['transaction', 'messages', 'messages.user'],
+            relations: ['transfer', 'messages', 'messages.user'],
             order: { createdAt: 'DESC' },
             skip,
             take: limit,
@@ -98,7 +108,7 @@ let DisputesService = class DisputesService {
     async getDisputeById(disputeId, userId, isAdmin = false) {
         const dispute = await this.disputeRepository.findOne({
             where: { id: disputeId },
-            relations: ['transaction', 'user', 'messages', 'messages.user', 'resolver'],
+            relations: ['transfer', 'user', 'messages', 'messages.user', 'resolver'],
         });
         if (!dispute) {
             throw new common_1.NotFoundException('Dispute not found');
@@ -154,7 +164,7 @@ let DisputesService = class DisputesService {
             where.priority = filters.priority;
         const [disputes, total] = await this.disputeRepository.findAndCount({
             where,
-            relations: ['transaction', 'user', 'messages', 'resolver'],
+            relations: ['transfer', 'user', 'messages', 'resolver'],
             order: { createdAt: 'DESC' },
             skip,
             take: limit,
@@ -232,7 +242,7 @@ exports.DisputesService = DisputesService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(entities_1.Dispute)),
     __param(1, (0, typeorm_1.InjectRepository)(entities_1.DisputeMessage)),
-    __param(2, (0, typeorm_1.InjectRepository)(entities_1.Transaction)),
+    __param(2, (0, typeorm_1.InjectRepository)(entities_1.Transfer)),
     __param(3, (0, typeorm_1.InjectRepository)(entities_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,

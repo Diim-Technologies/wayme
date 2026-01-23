@@ -12,6 +12,7 @@ export declare class StripeWebhookService {
     constructor(transferRepository: Repository<Transfer>, transactionRepository: Repository<Transaction>, paymentMethodRepository: Repository<PaymentMethod>, notificationRepository: Repository<Notification>, userRepository: Repository<User>, dataSource: DataSource);
     handleWebhookEvent(event: Stripe.Event): Promise<void>;
     handlePaymentIntentSucceeded(event: Stripe.Event): Promise<void>;
+    handlePaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent): Promise<void>;
     handlePaymentIntentFailed(event: Stripe.Event): Promise<void>;
     handlePaymentIntentCanceled(event: Stripe.Event): Promise<void>;
     handlePaymentIntentRequiresAction(paymentIntent: Stripe.PaymentIntent): Promise<void>;

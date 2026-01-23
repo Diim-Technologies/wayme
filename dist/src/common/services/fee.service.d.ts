@@ -4,7 +4,7 @@ import { Fee } from '../../entities';
 export declare class FeeService {
     private feeRepository;
     constructor(feeRepository: Repository<Fee>);
-    calculateTransferFee(amount: Decimal, transferType?: string, paymentMethod?: string, currency?: string): Promise<Decimal>;
+    calculateTransferFee(amount: Decimal, currency?: string): Promise<Decimal>;
     calculateCurrencyConversionFee(amount: Decimal, sourceCurrency: string, targetCurrency: string): Promise<Decimal>;
     getAllFeeConfigurations(): Promise<Fee[]>;
     createFeeConfiguration(data: {
@@ -12,15 +12,11 @@ export declare class FeeService {
         type: string;
         percentage?: number;
         fixedAmount?: number;
-        transferType?: string;
-        paymentMethod?: string;
         currency?: string;
     }): Promise<Fee>;
     updateFeeConfiguration(id: string, data: {
         percentage?: number;
         fixedAmount?: number;
-        transferType?: string;
-        paymentMethod?: string;
         isActive?: boolean;
     }): Promise<Fee>;
 }

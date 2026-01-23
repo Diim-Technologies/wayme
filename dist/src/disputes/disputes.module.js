@@ -19,7 +19,7 @@ exports.DisputesModule = DisputesModule;
 exports.DisputesModule = DisputesModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([entities_1.Dispute, entities_1.DisputeMessage, entities_1.Transaction, entities_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([entities_1.Dispute, entities_1.DisputeMessage, entities_1.Transfer, entities_1.User]),
             common_module_1.CommonModule,
         ],
         controllers: [disputes_controller_1.DisputesController, disputes_controller_1.AdminDisputesController],

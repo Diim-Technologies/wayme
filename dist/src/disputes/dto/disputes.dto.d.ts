@@ -1,6 +1,6 @@
 import { DisputeCategory, DisputePriority, DisputeStatus } from '../../enums/dispute.enum';
 export declare class CreateDisputeDto {
-    transactionId: string;
+    transferId: string;
     category: DisputeCategory;
     subject: string;
     description: string;

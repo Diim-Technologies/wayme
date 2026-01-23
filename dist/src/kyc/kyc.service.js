@@ -20,15 +20,17 @@ const entities_1 = require("../entities");
 const kyc_enum_1 = require("../enums/kyc.enum");
 const user_enum_1 = require("../enums/user.enum");
 const email_service_1 = require("../common/services/email.service");
+const config_1 = require("@nestjs/config");
 const fs = require("fs");
 const path = require("path");
 let KycService = class KycService {
-    constructor(kycDocumentRepository, userRepository, userProfileRepository, dataSource, emailService) {
+    constructor(kycDocumentRepository, userRepository, userProfileRepository, dataSource, emailService, configService) {
         this.kycDocumentRepository = kycDocumentRepository;
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.dataSource = dataSource;
         this.emailService = emailService;
+        this.configService = configService;
     }
     async uploadDocument(userId, file, documentType) {
         if (!file) {
@@ -53,7 +55,8 @@ let KycService = class KycService {
             await this.kycDocumentRepository.remove(existingDoc);
         }
         const filePath = file.path;
-        const fileUrl = `/uploads/kyc/${userId}/${file.filename}`;
+        const apiUrl = this.configService.get('API_URL') || 'http://localhost:3000';
+        const fileUrl = `${apiUrl}/uploads/kyc/${userId}/${file.filename}`;
         const kycDocument = this.kycDocumentRepository.create({
             userId,
             documentType,
@@ -105,6 +108,16 @@ let KycService = class KycService {
             message: 'KYC submitted successfully. Your documents are under review.',
             status: user_enum_1.KycStatus.PENDING,
         };
+    }
+    async submitFullKyc(userId, idFile, selfieFile, documentType) {
+        if (!idFile) {
+            throw new common_1.BadRequestException('Government ID file is required');
+        }
+        await this.uploadDocument(userId, idFile, documentType);
+        if (selfieFile) {
+            await this.uploadDocument(userId, selfieFile, kyc_enum_1.DocumentType.SELFIE);
+        }
+        return this.submitKyc(userId);
     }
     async getMyDocuments(userId) {
         const documents = await this.kycDocumentRepository.find({
@@ -235,10 +248,24 @@ let KycService = class KycService {
                 kycStatus: user_enum_1.KycStatus.APPROVED,
                 isVerified: true,
             });
+            const govDoc = await manager.findOne(entities_1.KycDocument, {
+                where: {
+                    userId,
+                    documentType: (0, typeorm_2.In)([kyc_enum_1.DocumentType.PASSPORT, kyc_enum_1.DocumentType.NATIONAL_ID, kyc_enum_1.DocumentType.RESIDENCE_PERMIT])
+                },
+                order: { uploadedAt: 'DESC' }
+            });
+            const selfieDoc = await manager.findOne(entities_1.KycDocument, {
+                where: { userId, documentType: kyc_enum_1.DocumentType.SELFIE },
+                order: { uploadedAt: 'DESC' }
+            });
             await manager.update(entities_1.UserProfile, { userId }, {
                 kycReviewedAt: new Date(),
                 kycReviewedBy: adminId,
                 kycRejectionReason: null,
+                idType: govDoc?.documentType,
+                idImageUrl: govDoc?.fileUrl,
+                selfieUrl: selfieDoc?.fileUrl,
             });
             await manager.update(entities_1.KycDocument, { userId }, {
                 isVerified: true,
@@ -303,6 +330,7 @@ exports.KycService = KycService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.DataSource,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        config_1.ConfigService])
 ], KycService);
 //# sourceMappingURL=kyc.service.js.map

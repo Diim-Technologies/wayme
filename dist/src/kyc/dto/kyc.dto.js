@@ -9,23 +9,23 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KycFilterDto = exports.RejectKycDto = exports.SubmitKycDto = exports.UploadDocumentDto = void 0;
+exports.KycFilterDto = exports.RejectKycDto = exports.SubmitKycDto = exports.SubmitKycFullDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 const kyc_enum_1 = require("../../enums/kyc.enum");
 const user_enum_1 = require("../../enums/user.enum");
-class UploadDocumentDto {
+class SubmitKycFullDto {
 }
-exports.UploadDocumentDto = UploadDocumentDto;
+exports.SubmitKycFullDto = SubmitKycFullDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
         example: 'NATIONAL_ID',
-        enum: kyc_enum_1.DocumentType,
-        description: 'Type of document being uploaded'
+        enum: [kyc_enum_1.DocumentType.PASSPORT, kyc_enum_1.DocumentType.NATIONAL_ID, kyc_enum_1.DocumentType.RESIDENCE_PERMIT],
+        description: 'Type of government ID being uploaded'
     }),
     (0, class_validator_1.IsEnum)(kyc_enum_1.DocumentType),
     __metadata("design:type", String)
-], UploadDocumentDto.prototype, "documentType", void 0);
+], SubmitKycFullDto.prototype, "documentType", void 0);
 class SubmitKycDto {
 }
 exports.SubmitKycDto = SubmitKycDto;

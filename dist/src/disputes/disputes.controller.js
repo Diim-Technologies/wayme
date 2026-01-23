@@ -42,14 +42,14 @@ __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({
         summary: 'Create a new dispute',
-        description: 'Create a dispute for a transaction. Users can only create disputes for their own transactions.',
+        description: 'Create a dispute for a transfer. Users can only create disputes for their own transfers.',
     }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'Dispute created successfully',
         example: {
             id: 'dispute_123',
-            transactionId: 'trans_456',
+            transferId: 'trans_456',
             userId: 'user_789',
             category: 'DELAYED_TRANSFER',
             status: 'OPEN',
@@ -60,8 +60,8 @@ __decorate([
         },
     }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid data or dispute already exists' }),
-    (0, swagger_1.ApiResponse)({ status: 403, description: 'Cannot create dispute for this transaction' }),
-    (0, swagger_1.ApiResponse)({ status: 404, description: 'Transaction not found' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Cannot create dispute for this transfer' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Transfer not found' }),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

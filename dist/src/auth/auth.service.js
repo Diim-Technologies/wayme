@@ -144,6 +144,9 @@ let AuthService = class AuthService {
             throw new common_1.BadRequestException('Invalid or expired 2FA code');
         }
         await this.otpRepository.update({ id: otp.id }, { isUsed: true });
+        if (user.isEmailVerified != true) {
+            await this.userRepository.update({ id: user.id }, { isEmailVerified: true });
+        }
         const payload = { sub: user.id, email: user.email, role: user.role };
         const accessToken = this.jwtService.sign(payload);
         return {
@@ -290,6 +293,7 @@ let AuthService = class AuthService {
                 phoneNumber: true,
                 role: true,
                 isVerified: true,
+                isEmailVerified: true,
                 kycStatus: true,
                 createdAt: true,
                 updatedAt: true,
@@ -358,7 +362,7 @@ let AuthService = class AuthService {
             throw new common_1.BadRequestException('Invalid or expired verification code');
         }
         await this.dataSource.transaction(async (manager) => {
-            await manager.update(entities_1.User, { id: user.id }, { isVerified: true });
+            await manager.update(entities_1.User, { id: user.id }, { isVerified: true, isEmailVerified: true });
             await manager.update(entities_1.OTP, { id: otp.id }, { isUsed: true });
         });
         return {
