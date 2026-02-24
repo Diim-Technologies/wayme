@@ -2,7 +2,7 @@ import { Repository, DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User, OTP } from '../entities';
 import { EmailService } from '../common/services/email.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, VerifyOTPDto, ResetPasswordDto, ChangePasswordDto, RequestEmailVerificationDto, VerifyEmailDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, VerifyOTPDto, ResetPasswordDto, ChangePasswordDto, RequestEmailVerificationDto, VerifyEmailDto, ResendOtpDto } from './dto/auth.dto';
 export declare class AuthService {
     private userRepository;
     private otpRepository;
@@ -77,6 +77,13 @@ export declare class AuthService {
     validateUser(userId: string): Promise<User>;
     private generateOTP;
     requestEmailVerificationOTP(requestDto: RequestEmailVerificationDto): Promise<{
+        message: string;
+        otpSent: boolean;
+    }>;
+    resendOtp(resendOtpDto: ResendOtpDto): Promise<{
+        message: string;
+        otpSent?: undefined;
+    } | {
         message: string;
         otpSent: boolean;
     }>;

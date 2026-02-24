@@ -339,6 +339,57 @@ let AuthService = class AuthService {
             otpSent: true,
         };
     }
+    async resendOtp(resendOtpDto) {
+        const { email, type } = resendOtpDto;
+        const user = await this.userRepository.findOne({
+            where: { email },
+        });
+        if (!user) {
+            if (type === common_enum_1.OTPType.PASSWORD_RESET) {
+                return {
+                    message: 'If the email exists in our system, you will receive a new password reset code.',
+                };
+            }
+            throw new common_1.NotFoundException('User not found');
+        }
+        if (type === common_enum_1.OTPType.EMAIL_VERIFICATION && user.isVerified) {
+            throw new common_1.BadRequestException('Email is already verified');
+        }
+        const otp = this.generateOTP();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        const otpEntity = this.otpRepository.create({
+            userId: user.id,
+            code: otp,
+            type,
+            expiresAt,
+        });
+        await this.otpRepository.save(otpEntity);
+        try {
+            switch (type) {
+                case common_enum_1.OTPType.EMAIL_VERIFICATION:
+                    await this.emailService.sendEmailVerificationOTP(email, otp, user.firstName);
+                    break;
+                case common_enum_1.OTPType.PASSWORD_RESET:
+                    await this.emailService.sendPasswordResetOTP(email, otp, user.firstName);
+                    break;
+                case common_enum_1.OTPType.TWO_FACTOR_AUTH:
+                    await this.emailService.sendLogin2FAOTP(email, otp, user.firstName);
+                    break;
+                default:
+                    throw new common_1.BadRequestException('Invalid OTP type');
+            }
+        }
+        catch (error) {
+            console.log(`Failed to resend ${type} OTP:`, error);
+            throw new common_1.BadRequestException(`Failed to send ${type === common_enum_1.OTPType.PASSWORD_RESET ? 'password reset' : 'verification'} email. Please try again.`);
+        }
+        return {
+            message: type === common_enum_1.OTPType.PASSWORD_RESET
+                ? 'If the email exists in our system, you will receive a new password reset code.'
+                : 'A new verification code has been sent to your email address.',
+            otpSent: true,
+        };
+    }
     async verifyEmailOTP(verifyEmailDto) {
         const { email, code } = verifyEmailDto;
         const user = await this.userRepository.findOne({

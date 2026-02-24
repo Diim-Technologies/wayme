@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, VerifyOTPDto, ResetPasswordDto, ChangePasswordDto, RequestEmailVerificationDto, VerifyEmailDto, Verify2FADto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, VerifyOTPDto, ResetPasswordDto, ChangePasswordDto, RequestEmailVerificationDto, VerifyEmailDto, Verify2FADto, ResendOtpDto } from './dto/auth.dto';
 export declare class AuthController {
     private authService;
     constructor(authService: AuthService);
@@ -66,6 +66,13 @@ export declare class AuthController {
     }>;
     changePassword(req: any, changePasswordDto: ChangePasswordDto): Promise<{
         message: string;
+    }>;
+    resendOtp(resendOtpDto: ResendOtpDto): Promise<{
+        message: string;
+        otpSent?: undefined;
+    } | {
+        message: string;
+        otpSent: boolean;
     }>;
     requestEmailVerification(requestDto: RequestEmailVerificationDto): Promise<{
         message: string;

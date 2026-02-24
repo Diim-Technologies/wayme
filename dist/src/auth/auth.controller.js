@@ -43,6 +43,9 @@ let AuthController = class AuthController {
     async changePassword(req, changePasswordDto) {
         return this.authService.changePassword(req.user.id, changePasswordDto);
     }
+    async resendOtp(resendOtpDto) {
+        return this.authService.resendOtp(resendOtpDto);
+    }
     async requestEmailVerification(requestDto) {
         return this.authService.requestEmailVerificationOTP(requestDto);
     }
@@ -227,6 +230,17 @@ __decorate([
     __metadata("design:paramtypes", [Object, auth_dto_1.ChangePasswordDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "changePassword", null);
+__decorate([
+    (0, common_1.Post)('resend-otp'),
+    (0, swagger_1.ApiOperation)({ summary: 'Resend OTP to user email' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'OTP resent successfully.' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Email already verified or invalid type.' }),
+    (0, swagger_1.ApiResponse)({ status: 44, description: 'User not found.' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.ResendOtpDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendOtp", null);
 __decorate([
     (0, common_1.Post)('request-email-verification'),
     (0, swagger_1.ApiOperation)({

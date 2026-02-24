@@ -55,7 +55,7 @@ let KycService = class KycService {
             await this.kycDocumentRepository.remove(existingDoc);
         }
         const filePath = file.path;
-        const apiUrl = this.configService.get('API_URL') || 'http://localhost:3000';
+        const apiUrl = this.configService.get('API_URL') || 'https://backendapi1-production.up.railway.app';
         const fileUrl = `${apiUrl}/uploads/kyc/${userId}/${file.filename}`;
         const kycDocument = this.kycDocumentRepository.create({
             userId,

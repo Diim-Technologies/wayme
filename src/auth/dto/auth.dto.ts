@@ -1,6 +1,7 @@
 
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches, IsEnum } from 'class-validator';
+import { OTPType } from '../../enums/common.enum';
 
 export class UpdateProfileDto {
   @ApiProperty({ example: 'john.doe@example.com' })
@@ -142,4 +143,18 @@ export class VerifyEmailDto {
   @IsString()
   @MinLength(6)
   code: string;
+}
+
+export class ResendOtpDto {
+  @ApiProperty({ example: 'john.doe@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    example: OTPType.EMAIL_VERIFICATION,
+    enum: OTPType,
+    description: 'The type of OTP to resend',
+  })
+  @IsEnum(OTPType)
+  type: OTPType;
 }

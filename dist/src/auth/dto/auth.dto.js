@@ -9,9 +9,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VerifyEmailDto = exports.RequestEmailVerificationDto = exports.ChangePasswordDto = exports.ResetPasswordDto = exports.Verify2FADto = exports.VerifyOTPDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = exports.UpdateProfileDto = void 0;
+exports.ResendOtpDto = exports.VerifyEmailDto = exports.RequestEmailVerificationDto = exports.ChangePasswordDto = exports.ResetPasswordDto = exports.Verify2FADto = exports.VerifyOTPDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = exports.UpdateProfileDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
+const common_enum_1 = require("../../enums/common.enum");
 class UpdateProfileDto {
 }
 exports.UpdateProfileDto = UpdateProfileDto;
@@ -188,4 +189,21 @@ __decorate([
     (0, class_validator_1.MinLength)(6),
     __metadata("design:type", String)
 ], VerifyEmailDto.prototype, "code", void 0);
+class ResendOtpDto {
+}
+exports.ResendOtpDto = ResendOtpDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'john.doe@example.com' }),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], ResendOtpDto.prototype, "email", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        example: common_enum_1.OTPType.EMAIL_VERIFICATION,
+        enum: common_enum_1.OTPType,
+        description: 'The type of OTP to resend',
+    }),
+    (0, class_validator_1.IsEnum)(common_enum_1.OTPType),
+    __metadata("design:type", String)
+], ResendOtpDto.prototype, "type", void 0);
 //# sourceMappingURL=auth.dto.js.map

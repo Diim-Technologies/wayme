@@ -1,3 +1,4 @@
+import { OTPType } from '../../enums/common.enum';
 export declare class UpdateProfileDto {
     email: string;
     firstName: string;
@@ -41,4 +42,8 @@ export declare class RequestEmailVerificationDto {
 export declare class VerifyEmailDto {
     email: string;
     code: string;
+}
+export declare class ResendOtpDto {
+    email: string;
+    type: OTPType;
 }

@@ -20,7 +20,8 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   RequestEmailVerificationDto,
-  VerifyEmailDto
+  VerifyEmailDto,
+  ResendOtpDto
 } from './dto/auth.dto';
 
 @Injectable()
@@ -444,6 +445,70 @@ export class AuthService {
 
     return {
       message: 'Verification code sent to your email address.',
+      otpSent: true,
+    };
+  }
+
+  async resendOtp(resendOtpDto: ResendOtpDto) {
+    const { email, type } = resendOtpDto;
+
+    // Find user by email
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      // For password reset, don't reveal if user exists
+      if (type === OTPType.PASSWORD_RESET) {
+        return {
+          message: 'If the email exists in our system, you will receive a new password reset code.',
+        };
+      }
+      throw new NotFoundException('User not found');
+    }
+
+    // If email verification, check if already verified
+    if (type === OTPType.EMAIL_VERIFICATION && user.isVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Generate new 6-digit OTP
+    const otp = this.generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save OTP to database
+    const otpEntity = this.otpRepository.create({
+      userId: user.id,
+      code: otp,
+      type,
+      expiresAt,
+    });
+    await this.otpRepository.save(otpEntity);
+
+    // Send OTP via email based on type
+    try {
+      switch (type) {
+        case OTPType.EMAIL_VERIFICATION:
+          await this.emailService.sendEmailVerificationOTP(email, otp, user.firstName);
+          break;
+        case OTPType.PASSWORD_RESET:
+          await this.emailService.sendPasswordResetOTP(email, otp, user.firstName);
+          break;
+        case OTPType.TWO_FACTOR_AUTH:
+          await this.emailService.sendLogin2FAOTP(email, otp, user.firstName);
+          break;
+        default:
+          throw new BadRequestException('Invalid OTP type');
+      }
+    } catch (error) {
+      console.log(`Failed to resend ${type} OTP:`, error);
+      throw new BadRequestException(`Failed to send ${type === OTPType.PASSWORD_RESET ? 'password reset' : 'verification'} email. Please try again.`);
+    }
+
+    return {
+      message: type === OTPType.PASSWORD_RESET
+        ? 'If the email exists in our system, you will receive a new password reset code.'
+        : 'A new verification code has been sent to your email address.',
       otpSent: true,
     };
   }

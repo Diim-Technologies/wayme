@@ -10,7 +10,8 @@ import {
   ChangePasswordDto,
   RequestEmailVerificationDto,
   VerifyEmailDto,
-  Verify2FADto
+  Verify2FADto,
+  ResendOtpDto
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -175,6 +176,15 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto) {
     return this.authService.changePassword(req.user.id, changePasswordDto);
+  }
+
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP to user email' })
+  @ApiResponse({ status: 200, description: 'OTP resent successfully.' })
+  @ApiResponse({ status: 400, description: 'Email already verified or invalid type.' })
+  @ApiResponse({ status: 44, description: 'User not found.' })
+  async resendOtp(@Body() resendOtpDto: ResendOtpDto) {
+    return this.authService.resendOtp(resendOtpDto);
   }
 
   @Post('request-email-verification')
