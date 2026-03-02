@@ -12,7 +12,9 @@ module.exports = new DataSource({
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
-  logging: true,
+ logging: process.env.NODE_ENV === 'development'
+  ? ['query', 'error', 'warn']
+  : ['error'],
   migrationsTransactionMode: 'each',
   ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 });
