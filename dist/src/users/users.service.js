@@ -18,6 +18,15 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const entities_1 = require("../entities");
 let UsersService = class UsersService {
+    async softDeleteUser(userId) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        user.isDeleted = true;
+        await this.userRepository.save(user);
+        return { success: true, message: 'Account deleted.' };
+    }
     constructor(userRepository, userProfileRepository) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;

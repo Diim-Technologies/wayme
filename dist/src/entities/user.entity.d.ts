@@ -7,6 +7,7 @@ import { Beneficiary } from './beneficiary.entity';
 import { UserProfile } from './user-profile.entity';
 export declare class User {
     id: string;
+    isDeleted: boolean;
     generateId(): void;
     email: string;
     firstName: string;

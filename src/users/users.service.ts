@@ -6,6 +6,15 @@ import { UpdateProfileDto } from './dto/users.dto';
 
 @Injectable()
 export class UsersService {
+    async softDeleteUser(userId: string) {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      user.isDeleted = true;
+      await this.userRepository.save(user);
+      return { success: true, message: 'Account deleted.' };
+    }
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,

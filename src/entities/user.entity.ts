@@ -22,6 +22,8 @@ import { UserProfile } from './user-profile.entity';
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+    @Column({ default: false })
+    isDeleted: boolean;
 
   @BeforeInsert()
   generateId() {

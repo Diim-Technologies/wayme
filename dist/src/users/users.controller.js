@@ -20,6 +20,9 @@ const users_dto_1 = require("./dto/users.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const email_service_1 = require("../common/services/email.service");
 let UsersController = class UsersController {
+    async deleteAccount(req) {
+        return this.usersService.softDeleteUser(req.user.id);
+    }
     constructor(usersService, emailService) {
         this.usersService = usersService;
         this.emailService = emailService;
@@ -79,6 +82,16 @@ let UsersController = class UsersController {
     }
 };
 exports.UsersController = UsersController;
+__decorate([
+    (0, common_1.Post)('delete-account'),
+    (0, swagger_1.ApiOperation)({ summary: 'Soft delete user account', description: 'Mark user account as deleted (soft delete).' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Account deleted successfully', example: { success: true, message: 'Account deleted.' } }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "deleteAccount", null);
 __decorate([
     (0, common_1.Get)('me'),
     (0, swagger_1.ApiOperation)({

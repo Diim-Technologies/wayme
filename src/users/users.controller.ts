@@ -10,6 +10,13 @@ import { EmailService } from '../common/services/email.service';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class UsersController {
+    @Post('delete-account')
+    @ApiOperation({ summary: 'Soft delete user account', description: 'Mark user account as deleted (soft delete).' })
+    @ApiResponse({ status: 200, description: 'Account deleted successfully', example: { success: true, message: 'Account deleted.' } })
+    @ApiResponse({ status: 404, description: 'User not found' })
+    async deleteAccount(@Request() req) {
+      return this.usersService.softDeleteUser(req.user.id);
+    }
   constructor(
     private usersService: UsersService,
     private readonly emailService: EmailService,

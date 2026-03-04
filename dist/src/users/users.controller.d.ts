@@ -4,6 +4,10 @@ import { EmailService } from '../common/services/email.service';
 export declare class UsersController {
     private usersService;
     private readonly emailService;
+    deleteAccount(req: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     constructor(usersService: UsersService, emailService: EmailService);
     getCurrentUser(req: any): Promise<import("../entities").User>;
     getProfile(req: any): Promise<{

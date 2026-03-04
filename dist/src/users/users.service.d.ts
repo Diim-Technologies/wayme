@@ -4,6 +4,10 @@ import { UpdateProfileDto } from './dto/users.dto';
 export declare class UsersService {
     private userRepository;
     private userProfileRepository;
+    softDeleteUser(userId: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     constructor(userRepository: Repository<User>, userProfileRepository: Repository<UserProfile>);
     findById(id: string): Promise<User>;
     updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<{

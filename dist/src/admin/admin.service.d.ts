@@ -72,6 +72,7 @@ export declare class AdminService {
     updateUserRole(userId: string, updateUserRoleDto: UpdateUserRoleDto): Promise<User>;
     createAdminUser(createAdminUserDto: CreateAdminUserDto): Promise<{
         id: string;
+        isDeleted: boolean;
         email: string;
         firstName: string;
         lastName: string;

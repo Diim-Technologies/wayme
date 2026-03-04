@@ -38,6 +38,7 @@ export declare class AdminController {
     updateUserRole(userId: string, updateUserRoleDto: UpdateUserRoleDto): Promise<import("../entities").User>;
     createAdminUser(createAdminUserDto: CreateAdminUserDto): Promise<{
         id: string;
+        isDeleted: boolean;
         email: string;
         firstName: string;
         lastName: string;
