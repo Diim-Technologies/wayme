@@ -39,9 +39,12 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, firstName, lastName, phoneNumber, password } = registerDto;
 
-    // Check if user already exists
+    // Check if user already exists (ignore soft-deleted users)
     const existingUser = await this.userRepository.findOne({
-      where: [{ email }, { phoneNumber }],
+      where: [
+        { email, isDeleted: false },
+        { phoneNumber, isDeleted: false }
+      ],
     });
 
     if (existingUser) {
@@ -101,7 +104,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || user.isDeleted) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -391,14 +394,17 @@ export class AuthService {
         kycStatus: true,
         createdAt: true,
         updatedAt: true,
+        isDeleted: true,
       },
     });
 
-    if (!user) {
+    if (!user || user.isDeleted) {
       throw new UnauthorizedException('User not found');
     }
 
-    return user;
+    // Remove isDeleted from returned object for security
+    const { isDeleted, ...safeUser } = user;
+    return safeUser;
   }
 
   private generateOTP(): string {
