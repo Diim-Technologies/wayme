@@ -223,10 +223,10 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || user.isDeleted) {
       // Don't reveal if email exists or not for security
       return {
-        message: 'If the email exists in our system, you will receive a password reset code.',
+        message: 'Account not found.',
       };
     }
 
