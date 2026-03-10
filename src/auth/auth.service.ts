@@ -39,7 +39,7 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, firstName, lastName, phoneNumber, password } = registerDto;
 
-    // Check if user already exists (ignore soft-deleted users)
+    // Check if user already exists (active users)
     const existingUser = await this.userRepository.findOne({
       where: [
         { email, isDeleted: false },
@@ -58,16 +58,39 @@ export class AuthService {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
-    const user = this.userRepository.create({
-      email,
-      firstName,
-      lastName,
-      phoneNumber,
-      password: hashedPassword,
+    // Check if a soft-deleted user exists with the same email or phone number
+    // If so, reactivate and update that record instead of inserting a new one
+    const softDeletedUser = await this.userRepository.findOne({
+      where: [
+        { email, isDeleted: true },
+        { phoneNumber, isDeleted: true }
+      ],
     });
 
-    const savedUser = await this.userRepository.save(user);
+    let savedUser: User;
+
+    if (softDeletedUser) {
+      // Reactivate the soft-deleted user with new registration data
+      softDeletedUser.email = email;
+      softDeletedUser.firstName = firstName;
+      softDeletedUser.lastName = lastName;
+      softDeletedUser.phoneNumber = phoneNumber;
+      softDeletedUser.password = hashedPassword;
+      softDeletedUser.isDeleted = false;
+      softDeletedUser.isVerified = false;
+      softDeletedUser.isEmailVerified = false;
+      savedUser = await this.userRepository.save(softDeletedUser);
+    } else {
+      // Create new user
+      const user = this.userRepository.create({
+        email,
+        firstName,
+        lastName,
+        phoneNumber,
+        password: hashedPassword,
+      });
+      savedUser = await this.userRepository.save(user);
+    }
 
     // Generate JWT token
     const payload = { sub: savedUser.id, email: savedUser.email, role: savedUser.role };

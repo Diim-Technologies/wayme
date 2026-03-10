@@ -9,9 +9,24 @@ async function check() {
 
         const userCols = await ds.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users'");
 
+        // Check for CZK fee configuration
+        const czkFee = await ds.query("SELECT * FROM fees WHERE currency = 'CZK' AND isActive = true");
+        const czkFeeStatus = czkFee.length > 0 ? 'CZK fee configuration found.' : 'No CZK fee configuration found!';
+
+        // Check for duplicate users (email or phoneNumber)
+        const duplicateUsers = await ds.query(`
+            SELECT email, phoneNumber, COUNT(*) as count
+            FROM users
+            WHERE isDeleted = false
+            GROUP BY email, phoneNumber
+            HAVING COUNT(*) > 1
+        `);
+
         const report = {
             tables: tableNames,
-            userColumns: userCols
+            userColumns: userCols,
+            czkFeeStatus,
+            duplicateUsers
         };
 
         fs.writeFileSync('db-report.json', JSON.stringify(report, null, 2));

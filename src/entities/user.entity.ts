@@ -32,7 +32,7 @@ export class User {
     }
   }
 
-  @Column({ unique: true })
+  @Column()
   @Index()
   email: string;
 
@@ -42,7 +42,7 @@ export class User {
   @Column()
   lastName: string;
 
-  @Column({ unique: true })
+  @Column()
   @Index()
   phoneNumber: string;
 
